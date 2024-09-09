@@ -29,10 +29,25 @@ jobs:
       - name: Build Project
         run: npm run build
 
+      - name: Extract Project Name
+        id: project-name
+        run: |
+          PROJECT_NAME=$(jq -r '.name' package.json)
+          echo "PROJECT_NAME=$PROJECT_NAME" >> $GITHUB_ENV
+
       - name: Get tag name
         id: tag-name
         run: |
-          echo "TAGNAME=$(echo $GITHUB_REF | cut -d / -f 3)" >> $GITHUB_OUTPUT
+          TAGNAME=$(echo $GITHUB_REF | cut -d / -f 3)
+          echo "TAGNAME=$TAGNAME" >> $GITHUB_ENV
+
+      - name: Determine Docker Tag
+        id: docker-tag
+        run: |
+          if [[ "$TAGNAME" == *"alpha"* ]]; then
+            echo "DOCKER_TAG=latest-alpha" >> $GITHUB_ENV
+          else
+            echo "DOCKER_TAG=latest" >> $GITHUB_ENV
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
@@ -45,7 +60,7 @@ jobs:
 
       - name: Build and Push Docker Image
         run: |
-          docker build -t ${{ vars.DOCKER_NAMESPACE }}/dig-content-server:latest .
-          docker tag ${{ vars.DOCKER_NAMESPACE }}/dig-content-server:latest ${{ vars.DOCKER_NAMESPACE }}/dig-content-server:${{ steps.tag-name.outputs.TAGNAME }}
-          docker push ${{ vars.DOCKER_NAMESPACE }}/dig-content-server:latest
-          docker push ${{ vars.DOCKER_NAMESPACE }}/dig-content-server:${{ steps.tag-name.outputs.TAGNAME }}
+          docker build -t ${{ vars.DOCKER_NAMESPACE }}/${{ env.PROJECT_NAME }}:${{ env.DOCKER_TAG }} .
+          docker tag ${{ vars.DOCKER_NAMESPACE }}/${{ env.PROJECT_NAME }}:${{ env.DOCKER_TAG }} ${{ vars.DOCKER_NAMESPACE }}/${{ env.PROJECT_NAME }}:${{ steps.tag-name.outputs.TAGNAME }}
+          docker push ${{ vars.DOCKER_NAMESPACE }}/${{ env.PROJECT_NAME }}:${{ env.DOCKER_TAG }}
+          docker push ${{ vars.DOCKER_NAMESPACE }}/${{ env.PROJECT_NAME }}:${{ steps.tag-name.outputs.TAGNAME }}

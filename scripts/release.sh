@@ -7,19 +7,19 @@ if [ "$CURRENT_BRANCH" != "develop" ]; then
   exit 1
 fi
 
-# Extract the current version from package.json
-VERSION=$(jq -r '.version' package.json)
-
-# Create a new feature branch based on the version
-FEATURE_BRANCH="release/v$VERSION"
-git checkout -b "$FEATURE_BRANCH"
-
 # Run standard-version for version bumping
 npx standard-version --prerelease alpha
 
+# Extract the new version from package.json after bumping
+NEW_VERSION=$(jq -r '.version' package.json)
+
+# Create a new feature branch based on the new version
+FEATURE_BRANCH="release/v$NEW_VERSION"
+git checkout -b "$FEATURE_BRANCH"
+
 # Commit changes
 git add .
-git commit -m "chore(release): bump version to $VERSION"
+git commit -m "chore(release): bump version to $NEW_VERSION"
 
 # Notify the user about the feature branch
 echo "Version bumped and committed on branch $FEATURE_BRANCH."
