@@ -20,6 +20,7 @@ git checkout -b "$FEATURE_BRANCH"
 # Commit changes
 git add .
 git commit -m "chore(release): bump version to $NEW_VERSION"
+git push --set-upstream origin $FEATURE_BRANCH
 
 # Notify the user about the feature branch
 echo "Version bumped and committed on branch $FEATURE_BRANCH."
