@@ -8,7 +8,6 @@ import {
   DataIntegrityTreeOptions,
   DataStore,
   DigChallenge
-  // @ts-ignore
 } from "dig-sdk";
 import { formatBytes } from "../utils/formatBytes";
 import {
