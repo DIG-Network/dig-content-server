@@ -1,5 +1,4 @@
 import { Request, Response } from "express";
-// @ts-ignore
 import { Wallet, getStoresList } from "dig-sdk";
 
 /**
