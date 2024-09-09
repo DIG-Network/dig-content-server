@@ -1,48 +1,47 @@
-name: Auto Tag
+# This workflow runs on any PRs that are targeting main and ensures that the version in package.json is incremented
+name: Check Version Increment
 
 on:
-  push:
+  pull_request:
     branches:
-      - main
+      - 'main'
 
 concurrency:
-  group: main-release-check
+  # SHA is added to the end if on `main` to let all main workflows run
+  group: ${{ github.ref }}-${{ github.workflow }}-${{ github.event_name }}-${{ github.ref == 'refs/heads/main' && github.sha || '' }}
+  cancel-in-progress: true
 
 jobs:
-  release:
-    name: release
+  check-version:
+    name: Check version increment
     runs-on: ubuntu-latest
     steps:
-      - name: Clean workspace
-        uses: Chia-Network/actions/clean-workspace@main
+      - uses: Chia-Network/actions/clean-workspace@main
 
       - name: Checkout current branch
         uses: actions/checkout@v3
         with:
-          # Need PACKAGE_ADMIN_PAT token so when the tag is created, the tag automation runs
-          token: ${{ secrets.GH_ACCESS_TOKEN }}
-          fetch-depth: 0
+          path: branch-repo
 
-      - name: Set Git identity
-        run: |
-          git config --local user.email "automation@michaeltaylor.dev"
-          git config --local user.name "Automation"
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Checkout main
+        uses: actions/checkout@v3
+        with:
+          ref: main
+          path: main-repo
 
-      - name: Extract version from package.json
+      - name: Check Versions
         run: |
-          VERSION=$(jq -r '.version' package.json)
-          echo "Extracted version: $VERSION"
+          # Extract version from main branch's package.json
+          mainVersion=$(jq -r '.version' main-repo/package.json)
+          echo "Main version: $mainVersion"
+
+          # Extract version from current branch's package.json
+          branchVersion=$(jq -r '.version' branch-repo/package.json)
+          echo "Branch version: $branchVersion"
           
-          # Set the version as an output for other steps to use
-          echo "VERSION=$VERSION" >> $GITHUB_ENV
-
-          if git tag --list | grep -q "^$VERSION$"; then
-            echo "Tag $VERSION already exists, nothing to do."
-          else
-            echo "Tag does not exist. Creating and pushing tag."
-            git tag $VERSION -m "Release $VERSION"
-            git push origin $VERSION
+          # Compare versions
+          if [ "$branchVersion" == "$mainVersion" ]; then
+            echo "Version in package.json on this branch is not incremented. Version must increment for a merge to main."
+            exit 1
           fi
         shell: bash
