@@ -48,6 +48,7 @@ jobs:
             echo "DOCKER_TAG=latest-alpha" >> $GITHUB_ENV
           else
             echo "DOCKER_TAG=latest" >> $GITHUB_ENV
+          fi  # Add this line to close the 'if' statement
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
