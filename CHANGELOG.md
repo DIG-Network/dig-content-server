@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.0.1-alpha.3](https://github.com/DIG-Network/dig-content-server/compare/v0.0.1...v0.0.1-alpha.3) (2024-09-09)
+
+### 0.0.1 (2024-09-09)
+
+
+### Features
+
+* add dig-sdk ([42555ec](https://github.com/DIG-Network/dig-content-server/commit/42555ec86710ad655a1c307273e05c8ef0dcef1e))
+
 ## [1.0.0](https://github.com/Datalayer-Storage/dig-cli/compare/v0.0.49...v1.0.0) (2024-09-06)
 
 
