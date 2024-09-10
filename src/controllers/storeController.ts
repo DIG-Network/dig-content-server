@@ -8,7 +8,7 @@ import {
   DataIntegrityTreeOptions,
   DataStore,
   DigChallenge
-} from "dig-sdk";
+} from "@dignetwork/dig-sdk";
 import { formatBytes } from "../utils/formatBytes";
 import {
   renderIndexView,

@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { Wallet, getStoresList } from "dig-sdk";
+import { Wallet, getStoresList } from "@dignetwork/dig-sdk";
 
 /**
  * Handles the /well-known endpoint to retrieve the owner's public key

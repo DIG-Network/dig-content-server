@@ -1,5 +1,5 @@
 // @ts-ignore
-import { DataStore, getStoresList } from "dig-sdk";
+import { DataStore, getStoresList } from "@dignetwork/dig-sdk";
 
 export const precacheStoreInfo = async () => {
   const storeList = getStoresList();

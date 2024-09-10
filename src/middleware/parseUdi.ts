@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from "express";
 import { renderUnknownChainView } from "../views";
 
 // @ts-ignore
-import { DataStore } from "dig-sdk";
+import { DataStore } from "@dignetwork/dig-sdk";
 
 const validChainNames = ["chia"]; // List of valid chain names
 

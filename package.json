@@ -14,7 +14,7 @@
     "start": "ts-node src/index.ts",
     "server": "ts-node src/server.ts",
     "test": "mocha -r ts-node/register tests.ts",
-    "release": "bash ./scripts/release.sh"
+    "prepare-release": "bash ./scripts/release.sh"
   },
   "author": "",
   "license": "ISC",
@@ -24,7 +24,7 @@
     "LICENSE"
   ],
   "dependencies": {
-    "dig-sdk": "^1.1.0",
+    "@dignetwork/dig-sdk": "^0.0.1-alpha.10",
     "express": "^4.19.2"
   },
   "devDependencies": {
