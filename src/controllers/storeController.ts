@@ -205,8 +205,7 @@ export const getKey = async (req: Request, res: Response) => {
         return;
       } catch (error) {
         console.error("Error deserializing challenge:", error);
-        res.status(400).send("Invalid challenge format.");
-        return;
+        return getKeysIndex(req, res);
       }
     }
 
