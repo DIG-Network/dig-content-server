@@ -29,15 +29,15 @@ export const parseUdi = async (
 
     // Split the pathSegment by periods to extract potential components
     const parts = pathSegment.split(".");
-
+    
     if (parts.length === 3) {
       chainName = parts[0];
       storeId = parts[1];
-      rootHash = parts[2];
+      rootHash = parts[2]; // rootHash provided in the URL
     } else if (parts.length === 2) {
       if (parts[0].length === 64) {
         storeId = parts[0];
-        rootHash = parts[1];
+        rootHash = parts[1]; // rootHash provided in the URL
       } else {
         chainName = parts[0];
         storeId = parts[1];
@@ -56,9 +56,13 @@ export const parseUdi = async (
       }
     }
 
+    // Log extracted values
+    console.log("Extracted values - Chain Name:", chainName, "Store ID:", storeId, "Root Hash:", rootHash);
+
     // If no storeId or storeId is invalid, fall back to referrer or send an error
     if (!storeId || storeId.length !== 64) {
       if (referrer) {
+        console.warn("Invalid storeId, redirecting to referrer:", referrer);
         return res.redirect(302, referrer + req.originalUrl);
       }
       return res.status(400).send("Invalid or missing storeId.");
@@ -66,34 +70,40 @@ export const parseUdi = async (
 
     const dataStore = DataStore.from(storeId);
 
-    // Early exit: If both chainName and rootHash are missing, redirect with both added
+    // Early exit: If both chainName and rootHash are missing, fetch rootHash and redirect with both added
     if (!chainName && !rootHash) {
+      console.log("Both chainName and rootHash missing, fetching rootHash...");
       const storeInfo = await dataStore.fetchCoinInfo();
       rootHash = storeInfo.latestStore.metadata.rootHash.toString("hex");
 
-      let redirect = `/chia.${storeId}.${rootHash}${appendPath}`;
+      const redirect = `/chia.${storeId}.${rootHash}${appendPath}`;
+      console.log("Redirecting to:", redirect);
       return res.redirect(302, redirect);
     }
 
-    // If chainName is missing, redirect with "chia" added
+    // If chainName is missing, assume "chia"
     if (!chainName) {
+      console.log("ChainName missing, defaulting to 'chia'.");
       return res.redirect(302, `/chia.${pathSegment}${appendPath}`);
     }
 
     // Validate the chainName
     if (!validChainNames.includes(chainName)) {
+      console.warn("Invalid chain name:", chainName);
       return res.status(400).send(renderUnknownChainView(storeId, chainName));
     }
 
-    // If rootHash is missing, fetch it and redirect with the rootHash added
+    // If rootHash is missing, fetch the latest one
     if (!rootHash) {
+      console.log("RootHash missing, fetching the latest rootHash...");
       const storeInfo = await dataStore.fetchCoinInfo();
       rootHash = storeInfo.latestStore.metadata.rootHash.toString("hex");
-      return res.redirect(302, `/${chainName}.${storeId}.${rootHash}${appendPath}`);
+      //const redirect = `/${chainName}.${storeId}.${rootHash}${appendPath}`;
+     // console.log("Redirecting with updated rootHash:", redirect);
+     // return res.redirect(302, redirect);
     }
 
     // Attach extracted components to the request object
-
     // @ts-ignore
     req.chainName = chainName;
     // @ts-ignore
