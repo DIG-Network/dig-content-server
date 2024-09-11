@@ -1,7 +1,5 @@
 import { Request, Response, NextFunction } from "express";
 import { renderUnknownChainView } from "../views";
-
-// @ts-ignore
 import { DataStore } from "@dignetwork/dig-sdk";
 
 const validChainNames = ["chia"]; // List of valid chain names
@@ -17,14 +15,15 @@ export const parseUdi = async (
       return next();
     }
 
-    const pathSegment = req.params.storeId || ""; // Expecting storeId to be the first path segment
     const referrer = req.get("Referer") || "";
+    const cookieData = req.cookies.udiData || null;
 
     let chainName: string | null = null;
     let storeId: string = "";
     let rootHash: string | null = null;
 
-    // Parse the rest of the pathname after the storeId
+    // Extract the first path part as the storeId (assumed app identifier)
+    const pathSegment = req.params.storeId || ""; // Expecting storeId to be the first path segment
     const originalPath = req.originalUrl.split("/").slice(2).join("/"); // Removes the first segment, which is the storeId part
     const appendPath = originalPath ? `/${originalPath}` : "";
 
@@ -47,7 +46,17 @@ export const parseUdi = async (
       storeId = parts[0];
     }
 
-    // Handle missing storeId by redirecting to referrer + path
+    // Fallback to cookie if path segments are missing
+    if (!chainName || !rootHash || !storeId) {
+      if (cookieData) {
+        const { chainName: cookieChainName, storeId: cookieStoreId, rootHash: cookieRootHash } = cookieData;
+        chainName = chainName || cookieChainName;
+        storeId = storeId || cookieStoreId;
+        rootHash = rootHash || cookieRootHash;
+      }
+    }
+
+    // If no storeId or storeId is invalid, fall back to referrer or send an error
     if (!storeId || storeId.length !== 64) {
       if (referrer) {
         return res.redirect(302, referrer + req.originalUrl);
@@ -84,12 +93,16 @@ export const parseUdi = async (
     }
 
     // Attach extracted components to the request object
+
     // @ts-ignore
     req.chainName = chainName;
     // @ts-ignore
     req.storeId = storeId;
     // @ts-ignore
     req.rootHash = rootHash;
+
+    // Set cookie at the end with chainName, storeId, and rootHash
+    res.cookie('udiData', { chainName, storeId, rootHash }, { httpOnly: true, secure: true }); // Use secure in production
 
     next();
   } catch (error) {

@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.0.1-alpha.9](https://github.com/DIG-Network/dig-content-server/compare/v0.0.1-alpha.8...v0.0.1-alpha.9) (2024-09-11)
+
+
+### Features
+
+* add improvements to spa handling ([014d65e](https://github.com/DIG-Network/dig-content-server/commit/014d65e3d0fc30787f5463b1f103358d61840fe9))
+
 ### [0.0.1-alpha.8](https://github.com/DIG-Network/dig-content-server/compare/v0.0.1-alpha.7...v0.0.1-alpha.8) (2024-09-10)
 
 ### [0.0.1-alpha.7](https://github.com/DIG-Network/dig-content-server/compare/v0.0.1-alpha.6...v0.0.1-alpha.7) (2024-09-09)
