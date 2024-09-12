@@ -46,26 +46,32 @@ export const parseUdi = async (
       storeId = parts[0];
     }
 
-    // Fallback to cookie if path segments are missing
-    if (!chainName || !rootHash || !storeId) {
-      if (cookieData) {
-        const { chainName: cookieChainName, storeId: cookieStoreId, rootHash: cookieRootHash } = cookieData;
-        chainName = chainName || cookieChainName;
-        storeId = storeId || cookieStoreId;
-        rootHash = rootHash || cookieRootHash;
-      }
-    }
-
     // Log extracted values
     console.log("Extracted values - Chain Name:", chainName, "Store ID:", storeId, "Root Hash:", rootHash);
 
-    // If no storeId or storeId is invalid, fall back to referrer or send an error
+    // Validate storeId length
     if (!storeId || storeId.length !== 64) {
       if (referrer) {
         console.warn("Invalid storeId, redirecting to referrer:", referrer);
         return res.redirect(302, referrer + req.originalUrl);
       }
       return res.status(400).send("Invalid or missing storeId.");
+    }
+
+    // Fallback to cookie only if storeId matches the cookie's storeId
+    if (!chainName || !rootHash) {
+      if (cookieData) {
+        const { chainName: cookieChainName, storeId: cookieStoreId, rootHash: cookieRootHash } = cookieData;
+
+        // Only use cookie data if the storeId matches
+        if (cookieStoreId === storeId) {
+          console.log("Using cookie data as storeId matches:", storeId);
+          chainName = chainName || cookieChainName;
+          rootHash = rootHash || cookieRootHash;
+        } else {
+          console.log("StoreId changed, ignoring cookie data.");
+        }
+      }
     }
 
     const dataStore = DataStore.from(storeId);
@@ -98,9 +104,6 @@ export const parseUdi = async (
       console.log("RootHash missing, fetching the latest rootHash...");
       const storeInfo = await dataStore.fetchCoinInfo();
       rootHash = storeInfo.latestStore.metadata.rootHash.toString("hex");
-      //const redirect = `/${chainName}.${storeId}.${rootHash}${appendPath}`;
-     // console.log("Redirecting with updated rootHash:", redirect);
-     // return res.redirect(302, redirect);
     }
 
     // Attach extracted components to the request object
