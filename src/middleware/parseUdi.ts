@@ -112,7 +112,7 @@ export const parseUdi = async (
     req.rootHash = rootHash;
 
     // Set cookie at the end with chainName, storeId, and rootHash
-    res.cookie('udiData', { chainName, storeId, rootHash }, { httpOnly: true, secure: true }); // Use secure in production
+    res.cookie('udiData', { chainName, storeId, rootHash }, { httpOnly: true, secure: false });
 
     next();
   } catch (error) {

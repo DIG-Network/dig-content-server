@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.0.1-alpha.14](https://github.com/DIG-Network/dig-content-server/compare/v0.0.1-alpha.13...v0.0.1-alpha.14) (2024-09-12)
+
+
+### Features
+
+* add cores ([cc31e68](https://github.com/DIG-Network/dig-content-server/commit/cc31e682c44b5922132481fae72f3c77c13849bb))
+
 ### [0.0.1-alpha.13](https://github.com/DIG-Network/dig-content-server/compare/v0.0.1-alpha.12...v0.0.1-alpha.13) (2024-09-12)
 
 
