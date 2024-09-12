@@ -29,7 +29,7 @@ export const parseUdi = async (
 
     // Split the pathSegment by periods to extract potential components
     const parts = pathSegment.split(".");
-    
+
     if (parts.length === 3) {
       chainName = parts[0];
       storeId = parts[1];
@@ -47,7 +47,14 @@ export const parseUdi = async (
     }
 
     // Log extracted values
-    console.log("Extracted values - Chain Name:", chainName, "Store ID:", storeId, "Root Hash:", rootHash);
+    console.log(
+      "Extracted values - Chain Name:",
+      chainName,
+      "Store ID:",
+      storeId,
+      "Root Hash:",
+      rootHash
+    );
 
     // Validate storeId length
     if (!storeId || storeId.length !== 64) {
@@ -61,7 +68,11 @@ export const parseUdi = async (
     // Fallback to cookie only if storeId matches the cookie's storeId
     if (!chainName || !rootHash) {
       if (cookieData) {
-        const { chainName: cookieChainName, storeId: cookieStoreId, rootHash: cookieRootHash } = cookieData;
+        const {
+          chainName: cookieChainName,
+          storeId: cookieStoreId,
+          rootHash: cookieRootHash,
+        } = cookieData;
 
         // Only use cookie data if the storeId matches
         if (cookieStoreId === storeId) {
@@ -115,7 +126,11 @@ export const parseUdi = async (
     req.rootHash = rootHash;
 
     // Set cookie at the end with chainName, storeId, and rootHash
-    res.cookie('udiData', { chainName, storeId, rootHash }, { httpOnly: true, secure: false });
+    res.cookie(
+      "udiData",
+      { chainName, storeId, rootHash },
+      { httpOnly: true, secure: false, maxAge: 5 * 60 * 1000 }
+    );
 
     next();
   } catch (error) {
