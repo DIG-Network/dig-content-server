@@ -170,8 +170,7 @@ export const getKey = async (req: Request, res: Response) => {
 
     if (!datalayer.hasKey(key, rootHash)) {
       res.setHeader("X-Key-Exists", "false");
-      res.status(404).send("File not found.");
-      return;
+      return getKeysIndex(req, res);
     }
 
     // If a challenge hex is present, deserialize and create a challenge response
