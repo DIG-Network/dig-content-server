@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.0.1-alpha.16](https://github.com/DIG-Network/dig-content-server/compare/v0.0.1-alpha.15...v0.0.1-alpha.16) (2024-09-16)
+
+
+### Features
+
+* ability to request keys by chunk ([a18c3a3](https://github.com/DIG-Network/dig-content-server/commit/a18c3a3d71b249b1724affa017b6829d9d8a778d))
+* cookie max age of 5 mins ([402519c](https://github.com/DIG-Network/dig-content-server/commit/402519cc95cb03f489b80bc50a2b9c006eae548e))
+
 ### [0.0.1-alpha.15](https://github.com/DIG-Network/dig-content-server/compare/v0.0.1-alpha.14...v0.0.1-alpha.15) (2024-09-12)
 
 
