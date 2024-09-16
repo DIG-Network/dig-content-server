@@ -21,8 +21,7 @@ export const parseUdi = async (
 
     if (
       cookieData &&
-      cookieData.expiresAt &&
-      Date.now() >= cookieData.expiresAt
+      (cookieData.expiresAt == null || Date.now() >= cookieData.expiresAt)
     ) {
       cookieData = null;
     }
@@ -135,10 +134,10 @@ export const parseUdi = async (
     req.rootHash = rootHash;
 
     const expiresAt = Date.now() + 5 * 60 * 1000;
-    
+
     res.cookie(
       "udiData",
-      { chainName, storeId, rootHash, expiresAt  },
+      { chainName, storeId, rootHash, expiresAt },
       {
         httpOnly: true,
         secure: false,
