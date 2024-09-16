@@ -143,8 +143,9 @@ export const getKey = async (req: Request, res: Response) => {
     let { storeId, rootHash } = req;
     const catchall = req.params[0];
 
-    // Extract the challenge from query parameters
-    const challengeHex = req.query.challenge as string; // Expecting a hex string here
+    // Read offset and length query parameters (optional)
+    const offset = parseInt(req.query.offset as string, 10) || 0;
+    const length = parseInt(req.query.length as string, 10) || null;
 
     // If rootHash is not provided, fetch it from DataStore
     if (!rootHash) {
@@ -153,9 +154,7 @@ export const getKey = async (req: Request, res: Response) => {
       rootHash = storeInfo.latestStore.metadata.rootHash.toString("hex");
     }
 
-    const key = Buffer.from(decodeURIComponent(catchall), "utf-8").toString(
-      "hex"
-    );
+    const key = Buffer.from(decodeURIComponent(catchall), "utf-8").toString("hex");
 
     console.log("Fetching key:", key);
 
@@ -168,48 +167,14 @@ export const getKey = async (req: Request, res: Response) => {
 
     const datalayer = new DataIntegrityTree(storeId, options);
 
+    // Check if the key exists in the data layer
     if (!datalayer.hasKey(key, rootHash)) {
       res.setHeader("X-Key-Exists", "false");
       return getKeysIndex(req, res);
     }
 
-    // If a challenge hex is present, deserialize and create a challenge response
-    if (challengeHex) {
-      try {
-        // Deserialize the hex string back into a challenge object
-        const parsedChallenge = DigChallenge.deserializeChallenge(challengeHex);
-
-        if (parsedChallenge.storeId !== storeId) {
-          res.status(400).send("Invalid challenge store ID.");
-          return;
-        }
-
-        if (parsedChallenge.key !== key) {
-          res.status(400).send("Invalid challenge key.");
-          return;
-        }
-
-        if (parsedChallenge.rootHash !== rootHash) {
-          res.status(400).send("Invalid challenge root hash.");
-          return;
-        }
-
-        // Use the DigChallenge class to create a challenge response
-        const digChallenge = new DigChallenge(storeId, key, rootHash);
-        const challengeResponse = await digChallenge.createChallengeResponse(
-          parsedChallenge
-        );
-
-        res.status(200).send(challengeResponse);
-        return;
-      } catch (error) {
-        console.error("Error deserializing challenge:", error);
-        return getKeysIndex(req, res);
-      }
-    }
-
-    // Otherwise, stream the file and return proof of inclusion
-    const stream = datalayer.getValueStream(key, rootHash);
+    // Stream the requested chunk of the file
+    const stream = datalayer.getValueStream(key, rootHash, offset, length);
     const fileExtension = extname(catchall).toLowerCase();
     const sha256 = datalayer.getSHA256(key, rootHash);
 
@@ -227,6 +192,7 @@ export const getKey = async (req: Request, res: Response) => {
     res.setHeader("X-Store-Id", storeId);
     res.setHeader("X-Key-Exists", "true");
 
+    // Pipe the stream to the response, streaming only the requested chunk
     stream.pipe(res);
 
     stream.on("error", (err: any) => {
@@ -240,6 +206,7 @@ export const getKey = async (req: Request, res: Response) => {
     res.status(500).send("Error retrieving the requested file.");
   }
 };
+
 
 // Controller for handling HEAD requests to /:storeId/*
 export const headKey = async (req: Request, res: Response) => {
