@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.0.1-alpha.19](https://github.com/DIG-Network/dig-content-server/compare/v0.0.1-alpha.18...v0.0.1-alpha.19) (2024-09-16)
+
+
+### Features
+
+* move content server behind port 4161 and add mTLS ([b71a249](https://github.com/DIG-Network/dig-content-server/commit/b71a249e87fe1a551cb4118f1d06e6857c2f2460))
+
 ### [0.0.1-alpha.18](https://github.com/DIG-Network/dig-content-server/compare/v0.0.1-alpha.17...v0.0.1-alpha.18) (2024-09-16)
 
 
