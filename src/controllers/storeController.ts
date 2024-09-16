@@ -7,7 +7,8 @@ import {
   DataIntegrityTree,
   DataIntegrityTreeOptions,
   DataStore,
-  DigChallenge
+  DigChallenge,
+  DigNetwork,
 } from "@dignetwork/dig-sdk";
 import { formatBytes } from "../utils/formatBytes";
 import {
@@ -15,6 +16,7 @@ import {
   renderStoreView,
   renderKeysIndexView,
   renderStoreSyncingView,
+  renderStoreNotFoundView
 } from "../views";
 import { extname } from "path";
 
@@ -27,7 +29,22 @@ const digFolderPath = getStorageLocation();
 export const headStore = async (req: Request, res: Response) => {
   // @ts-ignore
   let { storeId } = req;
+  const hasRootHash = req.query.hasRootHash as string;
+
   const dataStore = DataStore.from(storeId);
+
+  if (hasRootHash) {
+    const localRootHistory = await dataStore.getLocalRootHistory();
+    res.setHeader(
+      "X-Has-RootHash",
+      localRootHistory?.some(
+        (rootHistory) => rootHistory.root_hash === hasRootHash
+      )
+        ? "true"
+        : "false"
+    );
+  }
+
   const { latestStore: state } = await dataStore.fetchCoinInfo();
   res.setHeader("X-Generation-Hash", state.metadata.rootHash.toString("hex"));
   res.setHeader("X-Store-Id", storeId);
@@ -67,6 +84,17 @@ export const getKeysIndex = async (req: Request, res: Response) => {
     }
 
     const showKeys = req.query.showKeys === "true";
+
+    const storeList = getStoresList();
+
+    if (!storeList.includes(storeId)) {
+      const peerRedirect = await DigNetwork.findPeerWithStoreKey(
+        storeId,
+        rootHash
+      );
+
+      return res.status(400).send(renderStoreNotFoundView(storeId, rootHash, chainName, peerRedirect));
+    }
 
     const options: DataIntegrityTreeOptions = {
       storageMode: "local",
@@ -138,11 +166,15 @@ export const getKeysIndex = async (req: Request, res: Response) => {
 
 // Controller for handling the /:storeId/* route
 export const getKey = async (req: Request, res: Response) => {
-  try {
-    // @ts-ignore
-    let { storeId, rootHash } = req;
-    const catchall = req.params[0];
+  // @ts-ignore
+  let { chainName, storeId, rootHash } = req;
+  const catchall = req.params[0];
 
+  const key = Buffer.from(decodeURIComponent(catchall), "utf-8").toString(
+    "hex"
+  );
+
+  try {
     // Extract the challenge from query parameters
     const challengeHex = req.query.challenge as string; // Expecting a hex string here
 
@@ -152,10 +184,6 @@ export const getKey = async (req: Request, res: Response) => {
       const storeInfo = await dataStore.fetchCoinInfo();
       rootHash = storeInfo.latestStore.metadata.rootHash.toString("hex");
     }
-
-    const key = Buffer.from(decodeURIComponent(catchall), "utf-8").toString(
-      "hex"
-    );
 
     console.log("Fetching key:", key);
 
@@ -235,6 +263,18 @@ export const getKey = async (req: Request, res: Response) => {
       res.status(500).send("Error streaming file.");
     });
   } catch (error) {
+    const peerRedirect = await DigNetwork.findPeerWithStoreKey(
+      storeId,
+      rootHash,
+      catchall
+    );
+
+    if (peerRedirect) {
+      res.redirect(
+        `http://${peerRedirect}:4161/${chainName}.${storeId}.${rootHash}/${catchall}`
+      );
+    }
+
     res.setHeader("X-Key-Exists", "false");
     console.error("Error in getKey controller:", error);
     res.status(500).send("Error retrieving the requested file.");
