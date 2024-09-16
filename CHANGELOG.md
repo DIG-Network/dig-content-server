@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.0.1-alpha.23](https://github.com/DIG-Network/dig-content-server/compare/v0.0.1-alpha.22...v0.0.1-alpha.23) (2024-09-16)
+
+
+### Features
+
+* add redirect logic to other peers when store not found ([aa57a0a](https://github.com/DIG-Network/dig-content-server/commit/aa57a0a1550ddc1ab47fd0125106285ed95b9e76))
+
 ### [0.0.1-alpha.22](https://github.com/DIG-Network/dig-content-server/compare/v0.0.1-alpha.21...v0.0.1-alpha.22) (2024-09-16)
 
 ### [0.0.1-alpha.21](https://github.com/DIG-Network/dig-content-server/compare/v0.0.1-alpha.20...v0.0.1-alpha.21) (2024-09-16)
