@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.0.1-alpha.17](https://github.com/DIG-Network/dig-content-server/compare/v0.0.1-alpha.16...v0.0.1-alpha.17) (2024-09-16)
+
+
+### Bug Fixes
+
+* cookie handling ([160241a](https://github.com/DIG-Network/dig-content-server/commit/160241afc0e64463fbe5203231ec4e5a6d02befc))
+
 ### [0.0.1-alpha.16](https://github.com/DIG-Network/dig-content-server/compare/v0.0.1-alpha.15...v0.0.1-alpha.16) (2024-09-16)
 
 
