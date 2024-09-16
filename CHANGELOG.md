@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.0.1-alpha.20](https://github.com/DIG-Network/dig-content-server/compare/v0.0.1-alpha.19...v0.0.1-alpha.20) (2024-09-16)
+
+
+### Bug Fixes
+
+* ssl cert ([a8b1f84](https://github.com/DIG-Network/dig-content-server/commit/a8b1f84592d2cb2b505a9f63af1e7b12c9eb36ca))
+
 ### [0.0.1-alpha.19](https://github.com/DIG-Network/dig-content-server/compare/v0.0.1-alpha.18...v0.0.1-alpha.19) (2024-09-16)
 
 
