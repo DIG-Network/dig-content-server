@@ -58,7 +58,7 @@ export const parseUdi = async (
         chainName = cookieChainName;
       }
 
-      if (!rootHash) {
+      if (!rootHash || rootHash.length !== 64) {
         rootHash = cookieRootHash;
       }
 
