@@ -232,7 +232,8 @@ export const getKey = async (req: Request, res: Response) => {
         return;
       } catch (error) {
         console.error("Error deserializing challenge:", error);
-        return getKeysIndex(req, res);
+        res.status(400).send("Invalid challenge format.");
+        return;
       }
     }
 
@@ -263,18 +264,6 @@ export const getKey = async (req: Request, res: Response) => {
       res.status(500).send("Error streaming file.");
     });
   } catch (error) {
-    const peerRedirect = await DigNetwork.findPeerWithStoreKey(
-      storeId,
-      rootHash,
-      catchall
-    );
-
-    if (peerRedirect) {
-      res.redirect(
-        `http://${peerRedirect}:4161/${chainName}.${storeId}.${rootHash}/${catchall}`
-      );
-    }
-
     res.setHeader("X-Key-Exists", "false");
     console.error("Error in getKey controller:", error);
     res.status(500).send("Error retrieving the requested file.");
