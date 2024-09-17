@@ -47,26 +47,6 @@ export const parseUdi = async (
       storeId = parts[0];
     }
 
-    if (cookieData) {
-      const {
-        chainName: cookieChainName,
-        storeId: cookieStoreId,
-        rootHash: cookieRootHash,
-      } = cookieData;
-
-      if (!chainName) {
-        chainName = cookieChainName;
-      }
-
-      if (!rootHash || rootHash.length !== 64) {
-        rootHash = cookieRootHash;
-      }
-
-      if (!storeId || storeId.length != 64) {
-        storeId = cookieStoreId;
-      }
-    }
-
     // Log extracted values
     console.log(
       "Extracted values - Chain Name:",
@@ -79,6 +59,16 @@ export const parseUdi = async (
 
     // Validate storeId length
     if (!storeId || storeId.length !== 64) {
+      if (cookieData) {
+        const {
+          chainName: cookieChainName,
+          storeId: cookieStoreId,
+        } = cookieData;
+
+        console.warn("Invalid storeId, redirecting to referrer:", referrer);
+        return res.redirect(302, `/${cookieChainName}.${cookieStoreId}` + req.originalUrl);
+      }
+
       if (referrer) {
         console.warn("Invalid storeId, redirecting to referrer:", referrer);
         return res.redirect(302, referrer + req.originalUrl);
