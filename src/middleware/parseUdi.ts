@@ -23,10 +23,20 @@ export const parseUdi = async (
     let storeId: string = "";
     let rootHash: string | null = null;
 
-    // Extract the first path part as the storeId (assumed app identifier)
-    const pathSegment = req.params.storeId || ""; // Expecting storeId to be the first path segment
-    const originalPath = req.originalUrl.split("/").slice(2).join("/"); // Removes the first segment, which is the storeId part
-    const appendPath = originalPath ? `/${originalPath}` : "";
+    // Extract the full path segments
+    const fullPath = req.path.split("/").filter(Boolean); // Split and filter empty strings
+    const pathSegment = fullPath.length > 0 ? fullPath[0] : ""; // First part of the path, expected to be storeId
+    const secondPathSegment = fullPath.length > 1 ? fullPath[1] : ""; // Second path segment if exists
+    const remainingPath = fullPath.slice(2).join("/"); // Remaining path after storeId and second part
+
+    // Edge case: If the first and second path segments are the same and the length > 64
+    if (pathSegment === secondPathSegment && pathSegment.length >= 64) {
+      const collapsedPath = `/${pathSegment}/${remainingPath}`;
+      console.log(
+        `Detected duplicate path segments, redirecting to collapsed URL: ${collapsedPath}`
+      );
+      return res.redirect(302, collapsedPath);
+    }
 
     // Split the pathSegment by periods to extract potential components
     const parts = pathSegment.split(".");
@@ -60,13 +70,14 @@ export const parseUdi = async (
     // Validate storeId length
     if (!storeId || storeId.length !== 64) {
       if (cookieData) {
-        const {
-          chainName: cookieChainName,
-          storeId: cookieStoreId,
-        } = cookieData;
+        const { chainName: cookieChainName, storeId: cookieStoreId } =
+          cookieData;
 
         console.warn("Invalid storeId, redirecting to referrer:", referrer);
-        return res.redirect(302, `/${cookieChainName}.${cookieStoreId}` + req.originalUrl);
+        return res.redirect(
+          302,
+          `/${cookieChainName}.${cookieStoreId}` + req.originalUrl
+        );
       }
 
       if (referrer) {
