@@ -62,7 +62,7 @@ export const parseUdi = async (
         rootHash = cookieRootHash;
       }
 
-      if (!storeId) {
+      if (!storeId || storeId.length != 64) {
         storeId = cookieStoreId;
       }
     }
