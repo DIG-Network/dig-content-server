@@ -19,13 +19,6 @@ export const parseUdi = async (
 
     let cookieData = req.cookies.udiData || null;
 
-    if (
-      cookieData &&
-      (cookieData.expiresAt == null || Date.now() >= cookieData.expiresAt)
-    ) {
-      cookieData = null;
-    }
-
     let chainName: string | null = null;
     let storeId: string = "";
     let rootHash: string | null = null;
@@ -83,7 +76,7 @@ export const parseUdi = async (
         } = cookieData;
 
         // Only use cookie data if the storeId matches
-        if (cookieStoreId === storeId) {
+        if (!storeId || cookieStoreId === storeId) {
           console.log("Using cookie data as storeId matches:", storeId);
           chainName = chainName || cookieChainName;
           rootHash = rootHash || cookieRootHash;
@@ -133,11 +126,9 @@ export const parseUdi = async (
     // @ts-ignore
     req.rootHash = rootHash;
 
-    const expiresAt = Date.now() + 5 * 60 * 1000;
-
     res.cookie(
       "udiData",
-      { chainName, storeId, rootHash, expiresAt },
+      { chainName, storeId, rootHash },
       {
         httpOnly: true,
         secure: false,
