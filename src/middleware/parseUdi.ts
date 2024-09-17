@@ -47,6 +47,26 @@ export const parseUdi = async (
       storeId = parts[0];
     }
 
+    if (cookieData) {
+      const {
+        chainName: cookieChainName,
+        storeId: cookieStoreId,
+        rootHash: cookieRootHash,
+      } = cookieData;
+
+      if (!chainName) {
+        chainName = cookieChainName;
+      }
+
+      if (!rootHash) {
+        rootHash = cookieRootHash;
+      }
+
+      if (!storeId) {
+        storeId = cookieStoreId;
+      }
+    }
+
     // Log extracted values
     console.log(
       "Extracted values - Chain Name:",
