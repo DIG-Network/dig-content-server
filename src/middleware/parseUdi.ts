@@ -115,7 +115,7 @@ export const parseUdi = async (
       const storeInfo = await dataStore.fetchCoinInfo();
       rootHash = storeInfo.latestStore.metadata.rootHash.toString("hex");
 
-      const redirect = `/chia.${storeId}.${rootHash}${appendPath}`;
+      const redirect = `/chia.${storeId}.${rootHash}${remainingPath}`;
       console.log("Redirecting to:", redirect);
       return res.redirect(302, redirect);
     }
@@ -123,7 +123,7 @@ export const parseUdi = async (
     // If chainName is missing, assume "chia"
     if (!chainName) {
       console.log("ChainName missing, defaulting to 'chia'.");
-      return res.redirect(302, `/chia.${pathSegment}${appendPath}`);
+      return res.redirect(302, `/chia.${pathSegment}${remainingPath}`);
     }
 
     // Validate the chainName
