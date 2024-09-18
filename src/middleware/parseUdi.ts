@@ -23,6 +23,8 @@ export const parseUdi = async (
     let storeId: string = "";
     let rootHash: string | null = null;
 
+    
+
     // Extract the first path part as the storeId (assumed app identifier)
     const pathSegment = req.params.storeId || ""; // Expecting storeId to be the first path segment
     const originalPathSegments = req.originalUrl.split("/").slice(2); // Remove the first segment, which is the storeId part
@@ -49,6 +51,9 @@ export const parseUdi = async (
     } else if (parts.length === 1) {
       storeId = parts[0];
     }
+
+
+    console.log(req.originalUrl);
 
     // Check for the edge case where the first and second path parts are the same
     if (originalPathSegments.length > 1 && storeId.length >= 64) {
