@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.0.1-alpha.32](https://github.com/DIG-Network/dig-content-server/compare/v0.0.1-alpha.31...v0.0.1-alpha.32) (2024-09-18)
+
+
+### Bug Fixes
+
+* duplicate path part ([1dfcc46](https://github.com/DIG-Network/dig-content-server/commit/1dfcc46c1ced8986395c082737033a0eca893138))
+
 ### [0.0.1-alpha.31](https://github.com/DIG-Network/dig-content-server/compare/v0.0.1-alpha.30...v0.0.1-alpha.31) (2024-09-18)
 
 ### [0.0.1-alpha.30](https://github.com/DIG-Network/dig-content-server/compare/v0.0.1-alpha.29...v0.0.1-alpha.30) (2024-09-17)
