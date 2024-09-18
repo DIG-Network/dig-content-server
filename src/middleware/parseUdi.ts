@@ -4,6 +4,26 @@ import { DataStore } from "@dignetwork/dig-sdk";
 
 const validChainNames = ["chia"]; // List of valid chain names
 
+function removeDuplicatePathPart(path: string): string {
+  // Split the path into segments, ignoring leading/trailing slashes
+  const parts = path.split('/').filter(part => part.length > 0);
+
+  // Check if the path has at least two segments
+  if (parts.length >= 2) {
+    const firstPart = parts[0];
+    const secondPart = parts[1];
+
+    // Check if the first two parts are identical and at least 64 characters long
+    if (firstPart === secondPart && firstPart.length >= 64) {
+      // Remove the duplicate second part
+      parts.splice(1, 1);
+    }
+  }
+
+  // Reconstruct the path with a leading slash
+  return '/' + parts.join('/');
+}
+
 export const parseUdi = async (
   req: Request,
   res: Response,
@@ -15,19 +35,22 @@ export const parseUdi = async (
       return next();
     }
 
-    const referrer = req.get("Referer") || "";
+    // **Apply removeDuplicatePathPart to the request path**
+    const modifiedPath = removeDuplicatePathPart(req.originalUrl);
 
+    const referrer = req.get("Referer") || "";
     let cookieData = req.cookies.udiData || null;
 
     let chainName: string | null = null;
     let storeId: string = "";
     let rootHash: string | null = null;
 
-    
+    // **Use modifiedPath instead of req.originalUrl**
+    const pathSegments = modifiedPath.split("/").filter(segment => segment.length > 0);
 
     // Extract the first path part as the storeId (assumed app identifier)
-    const pathSegment = req.params.storeId || ""; // Expecting storeId to be the first path segment
-    const originalPathSegments = req.originalUrl.split("/").slice(2); // Remove the first segment, which is the storeId part
+    const pathSegment = pathSegments[0] || ""; // Expecting storeId to be the first path segment
+    const originalPathSegments = pathSegments.slice(1); // Remove the first segment, which is the storeId part
     let appendPath =
       originalPathSegments.length > 0
         ? `/${originalPathSegments.join("/")}`
@@ -52,21 +75,6 @@ export const parseUdi = async (
       storeId = parts[0];
     }
 
-
-    console.log(req.originalUrl);
-
-    // Check for the edge case where the first and second path parts are the same
-    if (originalPathSegments.length > 1 && storeId.length >= 64) {
-      const secondPathPart = originalPathSegments[0];
-      const thirdPathPart = originalPathSegments[1];
-
-      if (secondPathPart === thirdPathPart && secondPathPart.length >= 64) {
-        // Remove the duplicate second occurrence from appendPath
-        appendPath = `/${originalPathSegments.slice(2).join("/")}`;
-        console.log("Duplicate path part found, collapsing the path.");
-      }
-    }
-
     // Log extracted values
     console.log(
       "Extracted values - Chain Name:",
@@ -80,19 +88,18 @@ export const parseUdi = async (
     // Validate storeId length
     if (!storeId || storeId.length !== 64) {
       if (cookieData) {
-        const { chainName: cookieChainName, storeId: cookieStoreId } =
-          cookieData;
+        const { chainName: cookieChainName, storeId: cookieStoreId } = cookieData;
 
         console.warn("Invalid storeId, redirecting to referrer:", referrer);
         return res.redirect(
           302,
-          `/${cookieChainName}.${cookieStoreId}` + req.originalUrl
+          `/${cookieChainName}.${cookieStoreId}` + appendPath
         );
       }
 
       if (referrer) {
         console.warn("Invalid storeId, redirecting to referrer:", referrer);
-        return res.redirect(302, referrer + req.originalUrl);
+        return res.redirect(302, referrer + appendPath);
       }
       return res.status(400).send("Invalid or missing storeId.");
     }
@@ -163,8 +170,8 @@ export const parseUdi = async (
       {
         httpOnly: true,
         secure: false,
-        maxAge: 5 * 60 * 1000, // Cookie expires after 5 minutes (5 * 60 * 1000 ms)
-        expires: new Date(Date.now() + 5 * 60 * 1000), // Expiry date explicitly set for 5 minutes
+        maxAge: 5 * 60 * 1000, // Cookie expires after 5 minutes
+        expires: new Date(Date.now() + 5 * 60 * 1000),
       }
     );
 
