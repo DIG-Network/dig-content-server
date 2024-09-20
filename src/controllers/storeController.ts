@@ -37,11 +37,11 @@ export const headStore = async (req: Request, res: Response) => {
   const dataStore = DataStore.from(storeId);
 
   if (hasRootHash) {
-    const localRootHistory = await dataStore.getLocalRootHistory();
+    const rootHistory = await dataStore.getRootHistory();
     res.setHeader(
       "X-Has-RootHash",
-      localRootHistory?.some(
-        (rootHistory) => rootHistory.root_hash === hasRootHash
+      rootHistory?.some(
+        (history) => history.root_hash === hasRootHash && history.synced
       )
         ? "true"
         : "false"
@@ -96,7 +96,7 @@ export const getKeysIndex = async (req: Request, res: Response) => {
         rootHash
       );
 
-      return res.status(400).send(renderStoreNotFoundView(storeId, rootHash, chainName, peerRedirect));
+      return res.status(400).send(renderStoreNotFoundView(storeId, rootHash, chainName, peerRedirect?.IpAddress));
     }
 
     const options: DataIntegrityTreeOptions = {
