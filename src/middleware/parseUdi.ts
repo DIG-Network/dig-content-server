@@ -21,7 +21,6 @@ function removeDuplicatePathPart(path: string): string {
   }
 
   const modifiedPath = '/' + parts.join('/');
-
   console.log('Original path:', path);
   console.log('Modified path:', modifiedPath);
 
@@ -40,8 +39,14 @@ export const parseUdi = async (
       return next();
     }
 
-    // **Apply removeDuplicatePathPart to the request path**
-    const modifiedPath = removeDuplicatePathPart(req.originalUrl);
+    // Extract the path and query string separately
+    const [path, queryString] = req.originalUrl.split("?");
+
+    // Apply removeDuplicatePathPart to the request path
+    const modifiedPath = removeDuplicatePathPart(path);
+
+    // Re-append the query string if it exists
+    const modifiedUrl = queryString ? `${modifiedPath}?${queryString}` : modifiedPath;
 
     const referrer = req.get("Referer") || "";
     let cookieData = req.cookies.udiData || null;
@@ -50,7 +55,7 @@ export const parseUdi = async (
     let storeId: string = "";
     let rootHash: string | null = null;
 
-    // **Use modifiedPath instead of req.originalUrl**
+    // Use modifiedPath instead of req.originalUrl
     const pathSegments = modifiedPath.split("/").filter(segment => segment.length > 0);
 
     // Extract the first path part as the storeId (assumed app identifier)
@@ -137,7 +142,7 @@ export const parseUdi = async (
       const storeInfo = await dataStore.fetchCoinInfo();
       rootHash = storeInfo.latestStore.metadata.rootHash.toString("hex");
 
-      const redirect = `/chia.${storeId}.${rootHash}${appendPath}`;
+      const redirect = `/chia.${storeId}.${rootHash}${appendPath}${queryString ? '?' + queryString : ''}`;
       console.log("Redirecting to:", redirect);
       return res.redirect(302, redirect);
     }
@@ -145,7 +150,7 @@ export const parseUdi = async (
     // If chainName is missing, assume "chia"
     if (!chainName) {
       console.log("ChainName missing, defaulting to 'chia'.");
-      return res.redirect(302, `/chia.${pathSegment}${appendPath}`);
+      return res.redirect(302, `/chia.${pathSegment}${appendPath}${queryString ? '?' + queryString : ''}`);
     }
 
     // Validate the chainName
