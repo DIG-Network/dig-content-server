@@ -119,7 +119,7 @@ export const parseUdi = async (
         } = cookieData;
 
         // Only use cookie data if the storeId matches
-        if (!storeId || cookieStoreId === storeId) {
+        if (!storeId || cookieStoreId === storeId || cookieRootHash === rootHash) {
           console.log("Using cookie data as storeId matches:", storeId);
           chainName = chainName || cookieChainName;
           rootHash = rootHash || cookieRootHash;
