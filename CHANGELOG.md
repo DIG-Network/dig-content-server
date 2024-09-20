@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.0.1-alpha.37](https://github.com/DIG-Network/dig-content-server/compare/v0.0.1-alpha.36...v0.0.1-alpha.37) (2024-09-20)
+
+
+### Bug Fixes
+
+* store routes ([2e80979](https://github.com/DIG-Network/dig-content-server/commit/2e8097929e10f4eb4e705fb8777ec6dc429a7426))
+
 ### [0.0.1-alpha.36](https://github.com/DIG-Network/dig-content-server/compare/v0.0.1-alpha.35...v0.0.1-alpha.36) (2024-09-20)
 
 
