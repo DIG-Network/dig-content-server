@@ -29,6 +29,9 @@ const digFolderPath = getStorageLocation();
 export const headStore = async (req: Request, res: Response) => {
   // @ts-ignore
   let { storeId } = req;
+
+  console.log('!!!', storeId, req.query);
+
   const hasRootHash = req.query.hasRootHash as string;
 
   const dataStore = DataStore.from(storeId);
