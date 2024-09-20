@@ -19,8 +19,8 @@ router.get("/", getStoresIndex);
 
 
 // Route to display the index of keys or serve the index.html file if it exists
-router.get("/:storeId", parseUdi, getKeysIndex);
 router.head("/:storeId", parseUdi, headStore);
+router.get("/:storeId", parseUdi, getKeysIndex);
 
 // Route to stream the value of a specific key
 router.get("/:storeId/*", parseUdi, getKey);
