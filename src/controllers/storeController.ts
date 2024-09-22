@@ -156,6 +156,7 @@ export const getKeysIndex = async (req: Request, res: Response) => {
 
     res.send(renderKeysIndexView(storeId, links));
   } catch (error: any) {
+    console.log('!', error.message);
     if (error.code === 404) {
       res.setHeader("X-Synced", "false");
       const state = await getCoinState(storeId);
