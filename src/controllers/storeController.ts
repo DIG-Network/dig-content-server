@@ -171,7 +171,16 @@ export const getKeysIndex = async (req: Request, res: Response) => {
           const host = req.get("host");
           const baseUrl = `${protocol}://${host}/${chainName}.${storeId}.${rootHash}`;
 
-          const scriptTag = `<script>window.env = { BASE_URL: "${baseUrl}" } </script>`;
+          const scriptTag = `
+            <script>
+              window.env = { BASE_URL: "${baseUrl}" }
+              (function() {
+                const base = document.createElement('base');
+                base.href = "${baseUrl}";
+                document.head.appendChild(base);
+              })(); 
+            </script>
+          `;
 
           // Inject the script tag before the closing </head> tag
           const modifiedContent = indexContent.replace(
