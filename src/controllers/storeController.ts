@@ -30,8 +30,6 @@ export const headStore = async (req: Request, res: Response) => {
   // @ts-ignore
   let { storeId } = req;
 
-  console.log('!!!', storeId, req.query);
-
   const hasRootHash = req.query.hasRootHash as string;
 
   const dataStore = DataStore.from(storeId);
@@ -112,10 +110,6 @@ export const getKeysIndex = async (req: Request, res: Response) => {
     res.setHeader("X-Generation-Hash", rootHash);
     res.setHeader("X-Store-Id", storeId);
 
-    if (process.env.CACHE_ALL_STORES === "") {
-      fs.mkdirSync(`${digFolderPath}/stores/${storeId}`, { recursive: true });
-    }
-
     if (!showKeys) {
       const indexKey = Buffer.from("index.html").toString("hex");
       const hasIndex = datalayer.hasKey(indexKey, rootHash);
@@ -171,8 +165,7 @@ export const getKeysIndex = async (req: Request, res: Response) => {
 // Controller for handling the /:storeId/* route
 export const getKey = async (req: Request, res: Response) => {
   // @ts-ignore
-  let { chainName, storeId, rootHash } = req;
-  const catchall = req.params[0];
+  let { chainName, storeId, rootHash, key: catchall } = req;
 
   const key = Buffer.from(decodeURIComponent(catchall), "utf-8").toString(
     "hex"
