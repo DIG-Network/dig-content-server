@@ -30,16 +30,16 @@ router.use((req, res, next) => {
     if (hasKey) {
       // Key is present; use the appropriate key controller
       if (method === 'get') {
-        return getKey(req, res, next);
+        return getKey(req, res);
       } else if (method === 'head') {
-        return headKey(req, res, next);
+        return headKey(req, res);
       }
     } else {
       // No key; use the store index controllers
       if (method === 'get') {
-        return getKeysIndex(req, res, next);
+        return getKeysIndex(req, res);
       } else if (method === 'head') {
-        return headStore(req, res, next);
+        return headStore(req, res);
       }
     }
   } else {
