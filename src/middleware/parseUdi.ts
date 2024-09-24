@@ -70,7 +70,7 @@ export const parseUdi = async (
     // Split the pathSegment by periods to extract potential components
     const parts = pathSegment.split(".");
 
-    if (parts.length === 1 && parts[0].length === 64) {
+    if (parts.length === 1 && parts[0].length !== 64) {
       appendPath = `/${parts[0]}${appendPath}`;
     }
 
