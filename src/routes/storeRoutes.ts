@@ -4,48 +4,26 @@ import {
   getKeysIndex,
   getKey,
   headKey,
-  headStore,
+  headStore
 } from "../controllers/storeController";
 import { parseUdi } from "../middleware/parseUdi";
 import { getWellKnown, getKnownStores } from "../controllers/wellKnown";
 
 const router = Router();
 
-// Routes that don't require UDI parsing
 router.get("/.well-known", getWellKnown);
 router.get("/.well-known/stores", getKnownStores);
 
-// Apply the parseUdi middleware to all routes that require UDI
-router.use(parseUdi);
+// Route to display the index of all stores
+router.get("/", getStoresIndex);
 
-// Middleware to choose the appropriate controller based on the presence of 'key'
-router.use((req, res, next) => {
-  const method = req.method.toLowerCase(); // 'get' or 'head'
 
-  if (method === 'get' || method === 'head') {
-    // Determine if 'key' is present and not just '/'
-    // @ts-ignore
-    const hasKey = req.key && req.key !== '/';
+// Route to display the index of keys or serve the index.html file if it exists
+router.head("/:storeId", parseUdi, headStore);
+router.get("/:storeId", parseUdi, getKeysIndex);
 
-    if (hasKey) {
-      // Key is present; use the appropriate key controller
-      if (method === 'get') {
-        return getKey(req, res);
-      } else if (method === 'head') {
-        return headKey(req, res);
-      }
-    } else {
-      // No key; use the store index controllers
-      if (method === 'get') {
-        return getKeysIndex(req, res);
-      } else if (method === 'head') {
-        return headStore(req, res);
-      }
-    }
-  } else {
-    // For other HTTP methods, proceed to the next middleware or route handler
-    next();
-  }
-});
+// Route to stream the value of a specific key
+router.get("/:storeId/*", parseUdi, getKey);
+router.head("/:storeId/*", parseUdi, headKey);
 
 export { router as storeRoutes };

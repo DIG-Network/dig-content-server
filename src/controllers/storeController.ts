@@ -16,7 +16,7 @@ import {
   renderStoreView,
   renderKeysIndexView,
   renderStoreSyncingView,
-  renderStoreNotFoundView
+  renderStoreNotFoundView,
 } from "../views";
 import { extname } from "path";
 
@@ -72,10 +72,9 @@ export const getStoresIndex = async (req: Request, res: Response) => {
   res.send(renderStoreView(rows.join("")));
 };
 
-// Controller for handling the /:storeId route
 export const getKeysIndex = async (req: Request, res: Response) => {
-  // @ts-ignore
-  let { chainName, storeId, rootHash } = req;
+  // Extract variables from the request object
+  let { chainName, storeId, rootHash } = req as any;
 
   try {
     if (!rootHash) {
@@ -94,7 +93,16 @@ export const getKeysIndex = async (req: Request, res: Response) => {
         rootHash
       );
 
-      return res.status(400).send(renderStoreNotFoundView(storeId, rootHash, chainName, peerRedirect?.IpAddress));
+      return res
+        .status(400)
+        .send(
+          renderStoreNotFoundView(
+            storeId,
+            rootHash,
+            chainName,
+            peerRedirect?.IpAddress
+          )
+        );
     }
 
     const options: DataIntegrityTreeOptions = {
@@ -110,12 +118,15 @@ export const getKeysIndex = async (req: Request, res: Response) => {
     res.setHeader("X-Generation-Hash", rootHash);
     res.setHeader("X-Store-Id", storeId);
 
+    if (process.env.CACHE_ALL_STORES === "") {
+      fs.mkdirSync(`${digFolderPath}/stores/${storeId}`, { recursive: true });
+    }
+
     if (!showKeys) {
       const indexKey = Buffer.from("index.html").toString("hex");
       const hasIndex = datalayer.hasKey(indexKey, rootHash);
 
       if (hasIndex) {
-        const stream = datalayer.getValueStream(indexKey, rootHash);
         const fileExtension = extname("index.html").toLowerCase();
         const sha256 = datalayer.getSHA256(indexKey);
 
@@ -130,17 +141,56 @@ export const getKeysIndex = async (req: Request, res: Response) => {
         const mimeType = mimeTypes[fileExtension] || "application/octet-stream";
         res.setHeader("Content-Type", mimeType);
 
-        stream.pipe(res);
+        // Get a readable stream of the index.html file
+        const stream = datalayer.getValueStream(indexKey, rootHash);
 
-        stream.on("error", (err: any) => {
-          console.error("Stream error:", err);
-          res.status(500).send("Error streaming file.");
-        });
+        // Helper function to read the stream into a string
+        const streamToString = (
+          stream: NodeJS.ReadableStream
+        ): Promise<string> => {
+          const chunks: Buffer[] = [];
+          return new Promise((resolve, reject) => {
+            stream.on("data", (chunk) => {
+              chunks.push(Buffer.from(chunk));
+            });
+            stream.on("error", (err) => {
+              reject(err);
+            });
+            stream.on("end", () => {
+              resolve(Buffer.concat(chunks).toString("utf-8"));
+            });
+          });
+        };
+
+        try {
+          // Read the stream and get the index.html content
+          const indexContent = await streamToString(stream);
+
+          // Prepare the script tag to inject
+          const protocol = req.protocol;
+          const host = req.get("host");
+          const baseUrl = `${protocol}://${host}/${chainName}.${storeId}.${rootHash}`;
+
+          const scriptTag = `<script>window.env = { BASE_URL: "${baseUrl}" } </script>`;
+
+          // Inject the script tag before the closing </head> tag
+          const modifiedContent = indexContent.replace(
+            /<\/head>/i,
+            `${scriptTag}</head>`
+          );
+
+          // Send the modified content
+          res.send(modifiedContent);
+        } catch (err) {
+          console.error("Error reading or modifying index.html:", err);
+          res.status(500).send("Error processing index.html file.");
+        }
 
         return;
       }
     }
 
+    // If no index.html or showKeys is true, render the keys index view
     const keys = datalayer.listKeys(rootHash);
     const links = keys.map((key: string) => {
       const utf8Key = hexToUtf8(key);
@@ -150,7 +200,6 @@ export const getKeysIndex = async (req: Request, res: Response) => {
 
     res.send(renderKeysIndexView(storeId, links));
   } catch (error: any) {
-    console.log('!', error.message);
     if (error.code === 404) {
       res.setHeader("X-Synced", "false");
       const state = await getCoinState(storeId);
@@ -164,18 +213,17 @@ export const getKeysIndex = async (req: Request, res: Response) => {
 
 // Controller for handling the /:storeId/* route
 export const getKey = async (req: Request, res: Response) => {
-  // Extract variables from the request object
-  let { storeId, rootHash, key: catchall } = req as any;
+  // @ts-ignore
+  let { chainName, storeId, rootHash } = req;
+  const catchall = req.params[0];
 
-  // Remove leading slash if present
-  const keyPath = catchall.startsWith('/') ? catchall.substring(1) : catchall;
-
-  // Decode and convert the key to hex
-  const key = Buffer.from(decodeURIComponent(keyPath), "utf-8").toString("hex");
+  const key = Buffer.from(decodeURIComponent(catchall), "utf-8").toString(
+    "hex"
+  );
 
   try {
     // Extract the challenge from query parameters
-    const challengeHex = req.query.challenge as string | undefined; // Expecting a hex string here
+    const challengeHex = req.query.challenge as string; // Expecting a hex string here
 
     // If rootHash is not provided, fetch it from DataStore
     if (!rootHash) {
@@ -197,7 +245,7 @@ export const getKey = async (req: Request, res: Response) => {
 
     if (!datalayer.hasKey(key, rootHash)) {
       res.setHeader("X-Key-Exists", "false");
-      return getKeysIndex(req, res); // Display index if key doesn't exist
+      return getKeysIndex(req, res);
     }
 
     // If a challenge hex is present, deserialize and create a challenge response
@@ -238,7 +286,7 @@ export const getKey = async (req: Request, res: Response) => {
 
     // Otherwise, stream the file and return proof of inclusion
     const stream = datalayer.getValueStream(key, rootHash);
-    const fileExtension = extname(keyPath).toLowerCase(); // Use keyPath instead of catchall
+    const fileExtension = extname(catchall).toLowerCase();
     const sha256 = datalayer.getSHA256(key, rootHash);
 
     if (!sha256) {
