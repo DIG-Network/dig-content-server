@@ -164,16 +164,18 @@ export const getKeysIndex = async (req: Request, res: Response) => {
 
 // Controller for handling the /:storeId/* route
 export const getKey = async (req: Request, res: Response) => {
-  // @ts-ignore
-  let { chainName, storeId, rootHash, key: catchall } = req;
+  // Extract variables from the request object
+  let { storeId, rootHash, key: catchall } = req as any;
 
-  const key = Buffer.from(decodeURIComponent(catchall), "utf-8").toString(
-    "hex"
-  );
+  // Remove leading slash if present
+  const keyPath = catchall.startsWith('/') ? catchall.substring(1) : catchall;
+
+  // Decode and convert the key to hex
+  const key = Buffer.from(decodeURIComponent(keyPath), "utf-8").toString("hex");
 
   try {
     // Extract the challenge from query parameters
-    const challengeHex = req.query.challenge as string; // Expecting a hex string here
+    const challengeHex = req.query.challenge as string | undefined; // Expecting a hex string here
 
     // If rootHash is not provided, fetch it from DataStore
     if (!rootHash) {
@@ -195,7 +197,7 @@ export const getKey = async (req: Request, res: Response) => {
 
     if (!datalayer.hasKey(key, rootHash)) {
       res.setHeader("X-Key-Exists", "false");
-      return getKeysIndex(req, res);
+      return getKeysIndex(req, res); // Display index if key doesn't exist
     }
 
     // If a challenge hex is present, deserialize and create a challenge response
@@ -236,7 +238,7 @@ export const getKey = async (req: Request, res: Response) => {
 
     // Otherwise, stream the file and return proof of inclusion
     const stream = datalayer.getValueStream(key, rootHash);
-    const fileExtension = extname(catchall).toLowerCase();
+    const fileExtension = extname(keyPath).toLowerCase(); // Use keyPath instead of catchall
     const sha256 = datalayer.getSHA256(key, rootHash);
 
     if (!sha256) {
