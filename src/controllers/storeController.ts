@@ -163,33 +163,38 @@ export const getKeysIndex = async (req: Request, res: Response) => {
         };
 
         try {
-          // Read the stream and get the index.html content
-          const indexContent = await streamToString(stream);
-
           // Prepare the script tag to inject
           const protocol = req.protocol;
           const host = req.get("host");
           const baseUrl = `${protocol}://${host}/${chainName}.${storeId}.${rootHash}`;
 
-          const scriptTag = `
+          // Read the stream and get the index.html content
+          const indexContent = await streamToString(stream);
+
+          // Prepare the base tag to inject
+          const baseTag = `<base href="${baseUrl}">`;
+
+          // Inject the base tag immediately after the opening <head> tag
+          const modifiedContentWithBase = indexContent.replace(
+            /<head>/i,
+            `<head>\n  ${baseTag}\n`
+          );
+
+          // Prepare the script tag to set window.env (if needed)
+          const envScriptTag = `
             <script>
-              window.env = { BASE_URL: "${baseUrl}" }
-              (function() {
-                const base = document.createElement('base');
-                base.href = "${baseUrl}";
-                document.head.appendChild(base);
-              })(); 
+              window.env = { BASE_URL: "${baseUrl}" };
             </script>
           `;
 
           // Inject the script tag before the closing </head> tag
-          const modifiedContent = indexContent.replace(
+          const finalContent = modifiedContentWithBase.replace(
             /<\/head>/i,
-            `${scriptTag}</head>`
+            `${envScriptTag}\n</head>`
           );
 
           // Send the modified content
-          res.send(modifiedContent);
+          res.send(finalContent);
         } catch (err) {
           console.error("Error reading or modifying index.html:", err);
           res.status(500).send("Error processing index.html file.");
