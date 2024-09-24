@@ -164,33 +164,18 @@ export const getKeysIndex = async (req: Request, res: Response) => {
 
         try {
           // Prepare the script tag to inject
-          const protocol = req.protocol;
-          const host = req.get("host");
-          const baseUrl = `${protocol}://${host}/${chainName}.${storeId}.${rootHash}`;
+          const baseUrl = `${chainName}.${storeId}.${rootHash}`;
 
           // Read the stream and get the index.html content
           const indexContent = await streamToString(stream);
 
           // Prepare the base tag to inject
-          const baseTag = `<base href="${baseUrl}">`;
+          const baseTag = `<udi href="${baseUrl}">`;
 
           // Inject the base tag immediately after the opening <head> tag
-          const modifiedContentWithBase = indexContent.replace(
+          const finalContent = indexContent.replace(
             /<head>/i,
             `<head>\n  ${baseTag}\n`
-          );
-
-          // Prepare the script tag to set window.env (if needed)
-          const envScriptTag = `
-            <script>
-              window.env = { BASE_URL: "${baseUrl}" };
-            </script>
-          `;
-
-          // Inject the script tag before the closing </head> tag
-          const finalContent = modifiedContentWithBase.replace(
-            /<\/head>/i,
-            `${envScriptTag}\n</head>`
           );
 
           // Send the modified content
