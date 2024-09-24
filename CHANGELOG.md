@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.0.1-alpha.46](https://github.com/DIG-Network/dig-content-server/compare/v0.0.1-alpha.45...v0.0.1-alpha.46) (2024-09-24)
+
+
+### Features
+
+* test new udi scheme ([bd5d526](https://github.com/DIG-Network/dig-content-server/commit/bd5d5269c6f756b3a9276850c4dadf3bbeb8267a))
+
 ### [0.0.1-alpha.45](https://github.com/DIG-Network/dig-content-server/compare/v0.0.1-alpha.44...v0.0.1-alpha.45) (2024-09-24)
 
 
