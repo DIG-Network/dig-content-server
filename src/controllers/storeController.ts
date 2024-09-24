@@ -176,7 +176,7 @@ export const getKeysIndex = async (req: Request, res: Response) => {
               window.env = { BASE_URL: "${baseUrl}" }
               (function() {
                 const base = document.createElement('base');
-                base.href = window.location.pathname.replace(/\/$/, '') + '/';
+                base.href = "${baseUrl}";
                 document.head.appendChild(base);
               })(); 
             </script>
