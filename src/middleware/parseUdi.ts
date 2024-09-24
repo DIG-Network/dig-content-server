@@ -1,9 +1,32 @@
 import { Request, Response, NextFunction } from "express";
 import { renderUnknownChainView } from "../views";
 import { DataStore } from "@dignetwork/dig-sdk";
-import qs from "qs"; // Use 'qs' instead of 'querystring'
 
 const validChainNames = ["chia"]; // List of valid chain names
+
+function removeDuplicatePathPart(path: string): string {
+  // Split the path into segments, ignoring leading/trailing slashes
+  const parts = path.split('/').filter(part => part.length > 0);
+
+  // Check if the path has at least two segments
+  if (parts.length >= 2) {
+    const firstPart = parts[0];
+    const secondPart = parts[1];
+
+    // Check if the first two parts are identical and at least 64 characters long
+    if (firstPart === secondPart && firstPart.length >= 64) {
+      // Remove the duplicate second part
+      parts.splice(1, 1);
+    }
+  }
+
+  const modifiedPath = '/' + parts.join('/');
+  console.log('Original path:', path);
+  console.log('Modified path:', modifiedPath);
+
+  // Reconstruct the path with a leading slash
+  return modifiedPath;
+}
 
 export const parseUdi = async (
   req: Request,
@@ -16,67 +39,83 @@ export const parseUdi = async (
       return next();
     }
 
+    // Extract the path and query string separately
+    const [path, queryString] = req.originalUrl.split("?");
+
+    // Apply removeDuplicatePathPart to the request path
+    const modifiedPath = removeDuplicatePathPart(path);
+
+    // Re-append the query string if it exists
+    const modifiedUrl = queryString ? `${modifiedPath}?${queryString}` : modifiedPath;
+
     const referrer = req.get("Referer") || "";
-    const cookieData = req.cookies.udiData || null;
+    let cookieData = req.cookies.udiData || null;
 
     let chainName: string | null = null;
     let storeId: string = "";
     let rootHash: string | null = null;
-    let key = req.path !== "/" ? req.path : "";
 
-    // Extract udi from query parameter
-    const udiParam = req.query.udi as string | undefined;
+    // Use modifiedPath instead of req.originalUrl
+    const pathSegments = modifiedPath.split("/").filter(segment => segment.length > 0);
 
-    if (udiParam) {
-      // Parse UDI from query parameter
-      const [udiPrefix, ...rest] = udiParam.split("/");
+    // Extract the first path part as the storeId (assumed app identifier)
+    const pathSegment = pathSegments[0] || ""; // Expecting storeId to be the first path segment
+    const originalPathSegments = pathSegments.slice(1); // Remove the first segment, which is the storeId part
+    let appendPath =
+      originalPathSegments.length > 0
+        ? `/${originalPathSegments.join("/")}`
+        : "";
 
-      // The key may be included in the UDI after the '/'
-      key = rest.length > 0 ? `/${rest.join("/")}` : key;
+    // Split the pathSegment by periods to extract potential components
+    const parts = pathSegment.split(".");
 
-      const parts = udiPrefix.split(".");
-
-      if (parts.length === 3) {
-        chainName = parts[0];
-        storeId = parts[1];
-        rootHash = parts[2];
-      } else if (parts.length === 2) {
-        chainName = parts[0];
-        storeId = parts[1];
-      } else if (parts.length === 1) {
+    if (parts.length === 3) {
+      chainName = parts[0];
+      storeId = parts[1];
+      rootHash = parts[2]; // rootHash provided in the URL
+    } else if (parts.length === 2) {
+      if (parts[0].length === 64) {
         storeId = parts[0];
-      }
-
-      // Do not redirect; process the request as is
-    } else {
-      // udiParam does not exist
-      // Check if there's a storeId in the cookie
-      if (cookieData && cookieData.storeId) {
-        // Use cookie data to build the UDI
-        chainName = cookieData.chainName || "chia";
-        storeId = cookieData.storeId;
-        rootHash = cookieData.rootHash;
-
-        // Build the UDI including the key (path)
-        const udiValue = `${chainName}.${storeId}${key}`;
-
-        // Build the redirect URL with the UDI in the query parameter
-        const existingQueryParams = { ...req.query, udi: udiValue };
-
-        const redirectUrl = `${req.path}?${qs.stringify(
-          existingQueryParams
-        )}`;
-
-        console.log("Redirecting to:", redirectUrl);
-        return res.redirect(302, redirectUrl);
+        rootHash = parts[1]; // rootHash provided in the URL
       } else {
-        // No UDI and no valid cookie data
-        return res.status(400).send("Invalid or missing UDI.");
+        chainName = parts[0];
+        storeId = parts[1];
       }
+    } else if (parts.length === 1) {
+      storeId = parts[0];
     }
 
-    // Fallback to cookie data if needed
-    if (!chainName || !storeId) {
+    // Log extracted values
+    console.log(
+      "Extracted values - Chain Name:",
+      chainName,
+      "Store ID:",
+      storeId,
+      "Root Hash:",
+      rootHash
+    );
+
+    // Validate storeId length
+    if (!storeId || storeId.length !== 64) {
+      if (cookieData) {
+        const { chainName: cookieChainName, storeId: cookieStoreId } = cookieData;
+
+        console.warn("Invalid storeId, redirecting to referrer:", referrer);
+        return res.redirect(
+          302,
+          `/${cookieChainName}.${cookieStoreId}` + appendPath
+        );
+      }
+
+      if (referrer) {
+        console.warn("Invalid storeId, redirecting to referrer:", referrer);
+        return res.redirect(302, referrer + appendPath);
+      }
+      return res.status(400).send("Invalid or missing storeId.");
+    }
+
+    // Fallback to cookie only if storeId matches the cookie's storeId
+    if (!chainName || !rootHash) {
       if (cookieData) {
         const {
           chainName: cookieChainName,
@@ -84,10 +123,10 @@ export const parseUdi = async (
           rootHash: cookieRootHash,
         } = cookieData;
 
-        // Use cookie data if storeId matches or storeId is missing
-        if (storeId === cookieStoreId || !storeId) {
+        // Only use cookie data if the storeId matches
+        if (!storeId || cookieStoreId === storeId || cookieRootHash === rootHash) {
+          console.log("Using cookie data as storeId matches:", storeId);
           chainName = chainName || cookieChainName;
-          storeId = storeId || cookieStoreId;
           rootHash = rootHash || cookieRootHash;
         } else {
           console.log("StoreId changed, ignoring cookie data.");
@@ -95,23 +134,23 @@ export const parseUdi = async (
       }
     }
 
-    // If chainName is missing, default to "chia"
+    const dataStore = DataStore.from(storeId);
+
+    // Early exit: If both chainName and rootHash are missing, fetch rootHash and redirect with both added
+    if (!chainName && !rootHash) {
+      console.log("Both chainName and rootHash missing, fetching rootHash...");
+      const storeInfo = await dataStore.fetchCoinInfo();
+      rootHash = storeInfo.latestStore.metadata.rootHash.toString("hex");
+
+      const redirect = `/chia.${storeId}.${rootHash}${appendPath}${queryString ? '?' + queryString : ''}`;
+      console.log("Redirecting to:", redirect);
+      return res.redirect(302, redirect);
+    }
+
+    // If chainName is missing, assume "chia"
     if (!chainName) {
       console.log("ChainName missing, defaulting to 'chia'.");
-      chainName = "chia";
-
-      // Rebuild the UDI
-      const udiValue = `${chainName}.${storeId}${key}`;
-
-      // Build the redirect URL with the updated UDI
-      const existingQueryParams = { ...req.query, udi: udiValue };
-
-      const redirectUrl = `${req.path}?${qs.stringify(
-        existingQueryParams
-      )}`;
-
-      console.log("Redirecting to:", redirectUrl);
-      return res.redirect(302, redirectUrl);
+      return res.redirect(302, `/chia.${pathSegment}${appendPath}${queryString ? '?' + queryString : ''}`);
     }
 
     // Validate the chainName
@@ -120,17 +159,21 @@ export const parseUdi = async (
       return res.status(400).send(renderUnknownChainView(storeId, chainName));
     }
 
+    // If rootHash is missing, fetch the latest one
+    if (!rootHash) {
+      console.log("RootHash missing, fetching the latest rootHash...");
+      const storeInfo = await dataStore.fetchCoinInfo();
+      rootHash = storeInfo.latestStore.metadata.rootHash.toString("hex");
+    }
+
     // Attach extracted components to the request object
     // @ts-ignore
     req.chainName = chainName;
     // @ts-ignore
     req.storeId = storeId;
     // @ts-ignore
-    req.rootHash = rootHash; // May be null if not provided
-    // @ts-ignore
-    req.key = key;
+    req.rootHash = rootHash;
 
-    // Set the cookie with UDI data
     res.cookie(
       "udiData",
       { chainName, storeId, rootHash },
@@ -145,8 +188,6 @@ export const parseUdi = async (
     next();
   } catch (error) {
     console.error("Error in parseUdi middleware:", error);
-    res
-      .status(500)
-      .send("An error occurred while verifying the identifier.");
+    res.status(500).send("An error occurred while verifying the identifier.");
   }
 };
