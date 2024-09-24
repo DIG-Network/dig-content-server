@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import { renderUnknownChainView } from "../views";
 import { DataStore } from "@dignetwork/dig-sdk";
+import { app } from "../app";
 
 const validChainNames = ["chia"]; // List of valid chain names
 
@@ -68,6 +69,10 @@ export const parseUdi = async (
 
     // Split the pathSegment by periods to extract potential components
     const parts = pathSegment.split(".");
+
+    if (parts.length === 1 && parts[0].length === 64) {
+      appendPath = `/${parts[0]}${appendPath}`;
+    }
 
     if (parts.length === 3) {
       chainName = parts[0];
