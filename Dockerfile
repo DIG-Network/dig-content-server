@@ -27,7 +27,6 @@ COPY . .
 # Install any needed packages specified in package.json
 RUN npm install
 RUN npm i datalayer-driver-linux-x64-gnu
-RUN npm i chia-server-coin-linux-x64-gnu
 RUN npm run build
 
 # Rebuild any native modules for the current environment
@@ -37,4 +36,4 @@ RUN npm rebuild
 EXPOSE 4161
 
 # Run npm start command when the container launches
-CMD ["node", "dist/index.js"]
+CMD ["node", "dist/cluster.js"]
