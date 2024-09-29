@@ -262,6 +262,7 @@ export const getKey = async (req: Request, res: Response) => {
 
     // Check if the file extension is `.clsp.run`
     if (catchall.endsWith(".clsp.run")) {
+      console.log("Executing Chialisp code...");
       // Extract params from the query if present (e.g., ?params=5,2,4)
       const paramsQuery = req.query.params as string;
       const params = paramsQuery ? paramsQuery.split(",") : [];
@@ -304,7 +305,7 @@ export const getKey = async (req: Request, res: Response) => {
       res.setHeader("X-Generation-Hash", rootHash);
       res.setHeader("X-Store-Id", storeId);
       res.setHeader("X-Key-Exists", "true");
-      res.setHeader("Content-Type", "application/chialisp");
+      res.setHeader("Content-Type", "application/json");
       return res.json({
         clsp: clspCode,
         params: params,
