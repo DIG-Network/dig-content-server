@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.0.1-alpha.58](https://github.com/DIG-Network/dig-content-server/compare/v0.0.1-alpha.57...v0.0.1-alpha.58) (2024-09-29)
+
+
+### Features
+
+* run clsp in execution env ([ca972e7](https://github.com/DIG-Network/dig-content-server/commit/ca972e7d48045fe8b00e78324c03105463642e1d))
+
 ### [0.0.1-alpha.57](https://github.com/DIG-Network/dig-content-server/compare/v0.0.1-alpha.56...v0.0.1-alpha.57) (2024-09-27)
 
 ### [0.0.1-alpha.56](https://github.com/DIG-Network/dig-content-server/compare/v0.0.1-alpha.55...v0.0.1-alpha.56) (2024-09-26)
