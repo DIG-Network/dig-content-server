@@ -1,5 +1,8 @@
-# Use the official Ubuntu image as the base image
-FROM ubuntu:latest
+# Use an official Ubuntu base image
+FROM ubuntu:20.04
+
+# Set environment variables for non-interactive installs
+ENV DEBIAN_FRONTEND=noninteractive
 
 # Set the working directory inside the container
 WORKDIR /app
