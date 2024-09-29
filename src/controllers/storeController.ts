@@ -286,7 +286,7 @@ export const getKey = async (req: Request, res: Response) => {
         res.setHeader("X-Generation-Hash", rootHash);
         res.setHeader("X-Store-Id", storeId);
         res.setHeader("X-Key-Exists", "true");
-        res.setHeader("Content-Type", "application/chialisp");
+        res.setHeader("Content-Type", "application/json");
         return res.json({
           clsp: clspCode,
           params: params,
