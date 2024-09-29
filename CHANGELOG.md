@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.0.1-alpha.63](https://github.com/DIG-Network/dig-content-server/compare/v0.0.1-alpha.62...v0.0.1-alpha.63) (2024-09-29)
+
+
+### Bug Fixes
+
+* clvm ([be33be1](https://github.com/DIG-Network/dig-content-server/commit/be33be1346e135d765c5a24b3b646109a9b66b2e))
+
+### [0.0.1-alpha.62](https://github.com/DIG-Network/dig-content-server/compare/v0.0.1-alpha.58...v0.0.1-alpha.62) (2024-09-29)
+
+
+### Features
+
+* mv clvm into the container directly ([5bc80eb](https://github.com/DIG-Network/dig-content-server/commit/5bc80ebb9a1090f768025c56354fc41c903cfd50))
+* mv clvm into the container directly ([1f41f90](https://github.com/DIG-Network/dig-content-server/commit/1f41f907a6d8e8247aaffd2bcbe9a3640433d9aa))
+
 ### [0.0.1-alpha.61](https://github.com/DIG-Network/dig-content-server/compare/v0.0.1-alpha.58...v0.0.1-alpha.61) (2024-09-29)
 
 

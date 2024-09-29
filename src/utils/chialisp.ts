@@ -24,7 +24,10 @@ export async function executeChialisp(clsp: string, params?: string[]): Promise<
 
     try {
         // Construct the one-liner command using `run` and `brun`
-        const clvmArgs = params ? `(${params.join(' ')})` : 'nil'; // Wrap params in parentheses
+        let clvmArgs = params ? `(${params.join(' ')})` : 'nil'; // Wrap params in parentheses
+        if (!params?.length) {
+            clvmArgs = 'nil';
+        }
         const command = `brun "$(run "${clsp}")" "${clvmArgs}"`;
 
         console.log(`Executing command: ${command}`);

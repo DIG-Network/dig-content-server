@@ -268,7 +268,7 @@ export const getKey = async (req: Request, res: Response) => {
       const params = paramsQuery ? paramsQuery.split(",") : [];
 
       // Cache by the key name (file path)
-      const cacheKey = catchall;
+      const cacheKey = `${catchall}-${params.join(",")}`;
       const cachedResult = chiaLispCache.get(cacheKey);
 
       // Get the contents of the `.clsp.run` file via stream
