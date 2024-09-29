@@ -1,27 +1,51 @@
-import superagent from 'superagent';
+import { exec } from 'child_process';
+import { promisify } from 'util';
+
+// Promisify the exec function to use async/await
+const execPromise = promisify(exec);
 
 /**
- * Executes a Chialisp program by calling the CLVM execution container.
+ * Executes Chialisp code with optional parameters using `run` and `brun` in one command.
  *
- * @param {string} clsp - The Chialisp program string.
- * @param {string[]} params - An array of parameters to pass to the Chialisp program.
- * @returns {Promise<string>} - The result from executing the Chialisp program.
+ * @param clsp - The Chialisp code to run
+ * @param params - Optional parameters for the Chialisp code
+ * @returns The result of the CLVM execution
  */
-export async function executeChialisp(clsp: string, params: string[]): Promise<string> {
-    try {
-        // The CLVM container is accessible on the Docker network with the service name 'clvm' and port '4163'
-        const response = await superagent
-            .post('http://clvm:4163/run-chialisp')
-            .set('Content-Type', 'application/json')
-            .send({
-                clsp: clsp,
-                params: params
-            });
+export async function executeChialisp(clsp: string, params?: string[]): Promise<string> {
+    if (!clsp) {
+        throw new Error('Chialisp code is required');
+    }
 
-        // Return the result from the CLVM container
-        return response.body.result;
-    } catch (error: any) {
-        console.error('Error calling CLVM container:', error.message);
-        throw new Error('Failed to execute Chialisp program');
+    // Unescape internal quotes in the Chialisp code
+    clsp = clsp.replace(/\\"/g, '"');
+
+    // Log the incoming Chialisp code
+    console.log(`Received Chialisp code: ${clsp}`);
+
+    try {
+        // Construct the one-liner command using `run` and `brun`
+        const clvmArgs = params ? `(${params.join(' ')})` : 'nil'; // Wrap params in parentheses
+        const command = `brun "$(run "${clsp}")" "${clvmArgs}"`;
+
+        console.log(`Executing command: ${command}`);
+
+        // Execute the one-liner `brun "$(run ...)"` command
+        const { stdout, stderr } = await execPromise(command);
+
+        if (stderr) {
+            console.error(`CLVM execution errors: ${stderr}`);
+        }
+
+        // Trim the output of CLVM execution to remove any trailing newlines or spaces
+        const trimmedResult = stdout.trim();
+
+        // Log the result
+        console.log(`CLVM execution result: ${trimmedResult}`);
+
+        // Return the result of the CLVM execution
+        return trimmedResult;
+    } catch (err) {
+        console.error(`An error occurred: ${err}`);
+        throw new Error('An internal error occurred during CLVM execution');
     }
 }
