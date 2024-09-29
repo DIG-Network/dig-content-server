@@ -19,12 +19,31 @@ import {
   renderStoreNotFoundView,
 } from "../views";
 import { extname } from "path";
-
+import { executeChialisp } from "../utils/chialisp";
 import { mimeTypes } from "../utils/mimeTypes";
 import { hexToUtf8 } from "../utils/hexUtils";
 import { getStorageLocation } from "../utils/storage";
+import NodeCache from "node-cache";
+import { Readable } from "stream";
 
 const digFolderPath = getStorageLocation();
+const chiaLispCache = new NodeCache({ stdTTL: 180 });
+
+// Utility function to read a stream and return its contents as a string
+const streamToString = (stream: Readable): Promise<string> => {
+  const chunks: Buffer[] = [];
+  return new Promise((resolve, reject) => {
+    stream.on("data", (chunk) => {
+      chunks.push(Buffer.from(chunk));
+    });
+    stream.on("error", (err) => {
+      reject(err);
+    });
+    stream.on("end", () => {
+      resolve(Buffer.concat(chunks).toString("utf-8"));
+    });
+  });
+};
 
 export const headStore = async (req: Request, res: Response) => {
   // @ts-ignore
@@ -210,29 +229,15 @@ export const getKeysIndex = async (req: Request, res: Response) => {
   }
 };
 
+
 // Controller for handling the /:storeId/* route
 export const getKey = async (req: Request, res: Response) => {
-  // @ts-ignore
-  let { chainName, storeId, rootHash } = req;
-  const catchall = req.params[0];
+  let { chainName, storeId, rootHash } = req as any;
+  const catchall = req.params[0]; // This is the key name, i.e., the file path
 
-  const key = Buffer.from(decodeURIComponent(catchall), "utf-8").toString(
-    "hex"
-  );
+  const key = Buffer.from(decodeURIComponent(catchall), "utf-8").toString("hex");
 
   try {
-    // Extract the challenge from query parameters
-    const challengeHex = req.query.challenge as string; // Expecting a hex string here
-
-    // If rootHash is not provided, fetch it from DataStore
-    if (!rootHash) {
-      const dataStore = DataStore.from(storeId);
-      const storeInfo = await dataStore.fetchCoinInfo();
-      rootHash = storeInfo.latestStore.metadata.rootHash.toString("hex");
-    }
-
-    console.log("Fetching key:", key);
-
     const options: DataIntegrityTreeOptions = {
       storageMode: "local",
       storeDir: `${digFolderPath}/stores`,
@@ -242,61 +247,77 @@ export const getKey = async (req: Request, res: Response) => {
 
     const datalayer = new DataIntegrityTree(storeId, options);
 
+    // Check if the file exists
     if (!datalayer.hasKey(key, rootHash)) {
       res.setHeader("X-Key-Exists", "false");
-      return getKeysIndex(req, res);
+      return res.status(404).send("Key not found.");
     }
 
-    // If a challenge hex is present, deserialize and create a challenge response
-    if (challengeHex) {
-      try {
-        // Deserialize the hex string back into a challenge object
-        const parsedChallenge = DigChallenge.deserializeChallenge(challengeHex);
-
-        if (parsedChallenge.storeId !== storeId) {
-          res.status(400).send("Invalid challenge store ID.");
-          return;
-        }
-
-        if (parsedChallenge.key !== key) {
-          res.status(400).send("Invalid challenge key.");
-          return;
-        }
-
-        if (parsedChallenge.rootHash !== rootHash) {
-          res.status(400).send("Invalid challenge root hash.");
-          return;
-        }
-
-        // Use the DigChallenge class to create a challenge response
-        const digChallenge = new DigChallenge(storeId, key, rootHash);
-        const challengeResponse = await digChallenge.createChallengeResponse(
-          parsedChallenge
-        );
-
-        res.status(200).send(challengeResponse);
-        return;
-      } catch (error) {
-        console.error("Error deserializing challenge:", error);
-        res.status(400).send("Invalid challenge format.");
-        return;
-      }
-    }
-
-    // Otherwise, stream the file and return proof of inclusion
-    const stream = datalayer.getValueStream(key, rootHash);
-    const fileExtension = extname(catchall).toLowerCase();
     const sha256 = datalayer.getSHA256(key, rootHash);
-
     if (!sha256) {
-      res.status(500).send("Error retrieving file.");
-      return;
+      return res.status(500).send("Error retrieving file.");
     }
 
     const proofOfInclusion = datalayer.getProof(key, sha256, rootHash);
-    res.setHeader("x-proof-of-inclusion", proofOfInclusion);
 
+    // Check if the file extension is `.clsp.run`
+    if (catchall.endsWith(".clsp.run")) {
+      // Extract params from the query if present (e.g., ?params=5,2,4)
+      const paramsQuery = req.query.params as string;
+      const params = paramsQuery ? paramsQuery.split(",") : [];
+
+      // Cache by the key name (file path)
+      const cacheKey = catchall;
+      const cachedResult = chiaLispCache.get(cacheKey);
+
+      // Get the contents of the `.clsp.run` file via stream
+      const clspStream = datalayer.getValueStream(key, rootHash);
+      if (!clspStream) {
+        return res.status(404).send("CLSP file not found.");
+      }
+
+      // Convert the stream to a string
+      const clspCode = await streamToString(clspStream);
+
+      if (cachedResult) {
+        // Return cached result with necessary headers and response structure
+        res.setHeader("x-proof-of-inclusion", proofOfInclusion);
+        res.setHeader("X-Generation-Hash", rootHash);
+        res.setHeader("X-Store-Id", storeId);
+        res.setHeader("X-Key-Exists", "true");
+        res.setHeader("Content-Type", "application/chialisp");
+        return res.json({
+          clsp: clspCode,
+          params: params,
+          result: cachedResult,
+        });
+      }
+
+      // Execute the Chialisp code using the extracted params
+      const result = await executeChialisp(clspCode, params);
+
+      // Cache the result based on the key name (file path) for 3 minutes
+      chiaLispCache.set(cacheKey, result);
+
+      // Return the result along with necessary headers and the structure
+      res.setHeader("x-proof-of-inclusion", proofOfInclusion);
+      res.setHeader("X-Generation-Hash", rootHash);
+      res.setHeader("X-Store-Id", storeId);
+      res.setHeader("X-Key-Exists", "true");
+      res.setHeader("Content-Type", "application/chialisp");
+      return res.json({
+        clsp: clspCode,
+        params: params,
+        result: result,
+      });
+    }
+
+    // If it's not a `.clsp.run` file, proceed with the regular file handling
+    const stream = datalayer.getValueStream(key, rootHash);
+    const fileExtension = extname(catchall).toLowerCase();
     const mimeType = mimeTypes[fileExtension] || "application/octet-stream";
+
+    res.setHeader("x-proof-of-inclusion", proofOfInclusion);
     res.setHeader("Content-Type", mimeType);
     res.setHeader("X-Generation-Hash", rootHash);
     res.setHeader("X-Store-Id", storeId);
