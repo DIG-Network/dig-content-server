@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.0.1-alpha.64](https://github.com/DIG-Network/dig-content-server/compare/v0.0.1-alpha.63...v0.0.1-alpha.64) (2024-09-30)
+
+
+### Bug Fixes
+
+* restore the ability to process challenges ([d96e0f2](https://github.com/DIG-Network/dig-content-server/commit/d96e0f24078a521d47eb7c522bd2720a33220d9d))
+
 ### [0.0.1-alpha.63](https://github.com/DIG-Network/dig-content-server/compare/v0.0.1-alpha.62...v0.0.1-alpha.63) (2024-09-29)
 
 
