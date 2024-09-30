@@ -238,6 +238,9 @@ export const getKey = async (req: Request, res: Response) => {
   const key = Buffer.from(decodeURIComponent(catchall), "utf-8").toString("hex");
 
   try {
+    // Extract the challenge from query parameters
+    const challengeHex = req.query.challenge as string; // Expecting a hex string here
+
     const options: DataIntegrityTreeOptions = {
       storageMode: "local",
       storeDir: `${digFolderPath}/stores`,
@@ -259,6 +262,42 @@ export const getKey = async (req: Request, res: Response) => {
     }
 
     const proofOfInclusion = datalayer.getProof(key, sha256, rootHash);
+
+    // Process the challenge if present
+    if (challengeHex) {
+      try {
+        // Deserialize the hex string back into a challenge object
+        const parsedChallenge = DigChallenge.deserializeChallenge(challengeHex);
+
+        if (parsedChallenge.storeId !== storeId) {
+          res.status(400).send("Invalid challenge store ID.");
+          return;
+        }
+
+        if (parsedChallenge.key !== key) {
+          res.status(400).send("Invalid challenge key.");
+          return;
+        }
+
+        if (parsedChallenge.rootHash !== rootHash) {
+          res.status(400).send("Invalid challenge root hash.");
+          return;
+        }
+
+        // Use the DigChallenge class to create a challenge response
+        const digChallenge = new DigChallenge(storeId, key, rootHash);
+        const challengeResponse = await digChallenge.createChallengeResponse(
+          parsedChallenge
+        );
+
+        res.status(200).send(challengeResponse);
+        return;
+      } catch (error) {
+        console.error("Error deserializing challenge:", error);
+        res.status(400).send("Invalid challenge format.");
+        return;
+      }
+    }
 
     // Check if the file extension is `.clsp.run`
     if (catchall.endsWith(".clsp.run")) {
@@ -337,6 +376,7 @@ export const getKey = async (req: Request, res: Response) => {
     res.status(500).send("Error retrieving the requested file.");
   }
 };
+
 
 // Controller for handling HEAD requests to /:storeId/*
 export const headKey = async (req: Request, res: Response) => {
