@@ -1,293 +1,435 @@
-import { Request, Response, NextFunction, IncomingHttpHeaders } from "express";
-import { createProxyMiddleware, Options } from "http-proxy-middleware";
-import NodeCache from "node-cache";
-import { ServerCoin, DigPeer } from "@dignetwork/dig-sdk";
+import { Request, Response } from "express";
+import fs from "fs";
+
+import {
+  getStoresList,
+  getCoinState,
+  DataIntegrityTree,
+  DataIntegrityTreeOptions,
+  DataStore,
+  DigChallenge,
+  DigNetwork,
+} from "@dignetwork/dig-sdk";
+import { formatBytes } from "../utils/formatBytes";
+import {
+  renderIndexView,
+  renderStoreView,
+  renderKeysIndexView,
+  renderStoreSyncingView,
+  renderStoreNotFoundView,
+} from "../views";
+import { extname } from "path";
+import { executeChialisp } from "../utils/chialisp";
+import { mimeTypes } from "../utils/mimeTypes";
 import { hexToUtf8 } from "../utils/hexUtils";
+import { getStorageLocation } from "../utils/storage";
+import NodeCache from "node-cache";
+import { Readable } from "stream";
 
-// Cache for peers, organized by storeId
-const peerCache = new NodeCache({ stdTTL: 600 }); // Cache for 10 minutes per storeId
-const offlinePeersCache = new NodeCache({ stdTTL: 300 }); // Blacklist cache for 5 minutes
-const activeConnections: { [peerIp: string]: number } = {}; // Track active connections for least-connections balancing
+const digFolderPath = getStorageLocation();
+const chiaLispCache = new NodeCache({ stdTTL: 180 });
 
-interface EpochData {
-  epoch: number;
-  round: number;
-}
-
-interface PeerInfo {
-  ipAddress: string;
-  weight: number;
-  failureCount: number;
-  successCount: number;
-  lastCheck: number;
-  lastFailure: number;
-  totalRequests: number;
-  totalLatency: number; // Track total latency to compute average
-}
-
-let currentEpoch: EpochData | null = null;
-
-// Track store refresh intervals to avoid multiple intervals per store
-const storeRefreshIntervals: { [storeId: string]: NodeJS.Timeout } = {};
-
-/**
- * Utility function to enforce a timeout on a promise
- */
-const withTimeout = <T>(
-  promise: Promise<T>,
-  ms: number,
-  timeoutMessage: string
-): Promise<T> => {
-  return Promise.race([
-    promise,
-    new Promise<T>((_, reject) =>
-      setTimeout(() => reject(new Error(timeoutMessage)), ms)
-    ),
-  ]);
-};
-
-/**
- * Function to seed the peer list for a specific storeId, or refresh if necessary
- * @param storeId - The store ID for which peers are seeded
- */
-const seedPeerList = async (storeId: string): Promise<void> => {
-  try {
-    const serverCoin = new ServerCoin(storeId);
-    const peersIpAddresses = await serverCoin.sampleCurrentEpoch(10); // Seed with up to 10 peers
-
-    peerCache.set(storeId, peersIpAddresses.map(ip => ({
-      ipAddress: ip,
-      weight: 5,
-      failureCount: 0,
-      successCount: 0,
-      lastCheck: Date.now(),
-      lastFailure: 0,
-      totalRequests: 0,
-      totalLatency: 0
-    })));
-
-    peersIpAddresses.forEach(ip => activeConnections[ip] = 0); // Initialize active connections
-
-    console.log(`Peer list seeded for storeId: ${storeId}`);
-  } catch (error: any) {
-    console.error(`Failed to seed peer list for storeId ${storeId}: ${error.message}`);
-  }
-};
-
-/**
- * Refresh peer list for a given storeId if the epoch has changed or peers are exhausted
- * @param storeId - The store ID for which peers should be refreshed
- */
-const refreshPeerListIfNeeded = async (storeId: string): Promise<void> => {
-  try {
-    const newEpoch = ServerCoin.getCurrentEpoch() as EpochData;
-
-    // Refresh peer list if the epoch has changed or no peers available for the storeId
-    if (!currentEpoch || newEpoch.epoch !== currentEpoch.epoch || newEpoch.round !== currentEpoch.round || !peerCache.has(storeId)) {
-      console.log(`Epoch changed or peer list exhausted for storeId ${storeId}. Refreshing peer list...`);
-      currentEpoch = newEpoch;
-      await seedPeerList(storeId);
-    }
-  } catch (error: any) {
-    console.error(`Error refreshing peer list for storeId ${storeId}: ${error.message}`);
-  }
-};
-
-/**
- * Set up periodic refresh for a specific storeId's peer list
- * @param storeId - The store ID for which periodic refresh should be set up
- */
-const setupPeriodicRefresh = (storeId: string): void => {
-  if (storeRefreshIntervals[storeId]) {
-    return;
-  }
-
-  const interval = setInterval(() => {
-    refreshPeerListIfNeeded(storeId);
-  }, 30 * 60 * 1000); // Refresh every 30 minutes
-
-  storeRefreshIntervals[storeId] = interval;
-
-  console.log(`Periodic refresh set up for storeId: ${storeId}`);
-};
-
-/**
- * Adjust the peer weights and success/failure tracking
- */
-const adjustPeerStats = (peer: PeerInfo, success: boolean, latency: number): void => {
-  peer.totalRequests += 1;
-  peer.totalLatency += latency;
-
-  if (success) {
-    peer.successCount += 1;
-    peer.weight = Math.min(peer.weight + 1, 10); // Increase weight, with a max of 10
-    peer.failureCount = 0;
-  } else {
-    peer.failureCount += 1;
-    peer.weight = Math.max(peer.weight - 1, 1); // Decrease weight, minimum of 1
-    peer.lastFailure = Date.now();
-
-    if (peer.failureCount >= 3) {
-      offlinePeersCache.set(peer.ipAddress, true);
-      console.log(`Peer ${peer.ipAddress} blacklisted after 3 failures.`);
-    }
-  }
-
-  peer.lastCheck = Date.now();
-};
-
-/**
- * Validate a peer using either headStore or headKey depending on whether a key is provided
- * @param peer - The peer to validate
- * @param storeId - The storeId for which the peer is being tested
- * @param rootHash - The expected root hash to compare against
- * @param key - Optional. The resource key (as a hex string) to be validated.
- * @returns A boolean indicating if the peer has the correct root hash or key data
- */
-const validatePeer = async (peer: PeerInfo, storeId: string, rootHash: string, key?: string): Promise<boolean> => {
-  try {
-    const digPeer = new DigPeer(peer.ipAddress, storeId);
-
-    if (!key) {
-      // No key provided, perform headStore
-      const response = await withTimeout(
-        digPeer.contentServer.headStore(rootHash),
-        5000,
-        `headStore timed out for peer ${peer.ipAddress}`
-      );
-      const hasRootHash = response.headers?.["x-has-roothash"];
-      if (hasRootHash === "true") {
-        console.log(`Peer ${peer.ipAddress} has the correct root hash.`);
-        return true;
-      } else {
-        console.error(`Peer ${peer.ipAddress} does not have the correct root hash.`);
-        return false;
-      }
-    } else {
-      // Key provided, perform headKey
-      const response = await withTimeout(
-        digPeer.contentServer.headKey(hexToUtf8(key), rootHash),
-        5000,
-        `headKey timed out for peer ${peer.ipAddress}`
-      );
-      const keyExists = response.headers?.["x-key-exists"];
-      if (keyExists === "true" && response.headers?.["x-generation-hash"] === rootHash) {
-        console.log(`Peer ${peer.ipAddress} has the correct key and generation hash for key ${key}.`);
-        return true;
-      } else {
-        console.error(`Peer ${peer.ipAddress} does not have the correct key or generation hash.`);
-        return false;
-      }
-    }
-  } catch (error: any) {
-    console.error(`Error validating peer ${peer.ipAddress}: ${error.message}`);
-    return false;
-  }
-};
-
-/**
- * Select a batch of peers and run validation concurrently, returning the first valid peer
- * @param peers - List of peers to test
- * @param storeId - The store ID
- * @param rootHash - The expected root hash
- * @param key - Optional. The resource key to validate against.
- * @returns The first valid peer or null if none pass
- */
-const selectValidPeer = async (peers: PeerInfo[], storeId: string, rootHash: string, key?: string): Promise<PeerInfo | null> => {
-  const validationPromises = peers.map(async (peer) => {
-    const isValid = await validatePeer(peer, storeId, rootHash, key);
-    if (isValid) return peer;
-    return null;
+// Utility function to read a stream and return its contents as a string
+const streamToString = (stream: Readable): Promise<string> => {
+  const chunks: Buffer[] = [];
+  return new Promise((resolve, reject) => {
+    stream.on("data", (chunk) => {
+      chunks.push(Buffer.from(chunk));
+    });
+    stream.on("error", (err) => {
+      reject(err);
+    });
+    stream.on("end", () => {
+      resolve(Buffer.concat(chunks).toString("utf-8"));
+    });
   });
-
-  try {
-    const firstValidPeer = await Promise.race(validationPromises); // Use Promise.race to get the first valid peer
-    return firstValidPeer;
-  } catch (error) {
-    console.error("No valid peers found in the batch.");
-    return null;
-  }
 };
 
-/**
- * Middleware to proxy requests through cached peers
- */
-export const networkRouter = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-): Promise<void> => {
-  const { chainName, storeId, rootHash } = req as any;
-  const key = req.path.split("/").slice(2).join("/"); // Extract key
+export const headStore = async (req: Request, res: Response) => {
+  // @ts-ignore
+  let { storeId } = req;
+
+  const hasRootHash = req.query.hasRootHash as string;
+
+  const dataStore = DataStore.from(storeId);
+
+  if (hasRootHash) {
+    const rootHistory = await dataStore.getRootHistory();
+    res.setHeader(
+      "X-Has-RootHash",
+      rootHistory?.some(
+        (history) => history.root_hash === hasRootHash && history.synced
+      )
+        ? "true"
+        : "false"
+    );
+  }
+
+  const { latestStore: state } = await dataStore.fetchCoinInfo();
+  res.setHeader("X-Generation-Hash", state.metadata.rootHash.toString("hex"));
+  res.setHeader("X-Store-Id", storeId);
+  res.setHeader("X-Synced", (await dataStore.isSynced()) ? "true" : "false");
+  res.status(200).end();
+};
+
+export const getStoresIndex = async (req: Request, res: Response) => {
+  // @ts-ignore
+  let { chainName } = req;
+  const storeList = getStoresList();
+  const rows = await Promise.all(
+    storeList.map(async (storeId: string) => {
+      const state = await getCoinState(storeId);
+      const formattedBytes = formatBytes(Number(state.metadata.bytes));
+      return renderIndexView(
+        chainName || "chia",
+        storeId,
+        state,
+        formattedBytes
+      );
+    })
+  );
+  res.send(renderStoreView(rows.join("")));
+};
+
+export const getKeysIndex = async (req: Request, res: Response) => {
+  // Extract variables from the request object
+  let { chainName, storeId, rootHash } = req as any;
 
   try {
-    // Refresh peer list if needed
-    await refreshPeerListIfNeeded(storeId);
-
-    // Set up periodic refresh
-    setupPeriodicRefresh(storeId);
-
-    let peers = peerCache.get(storeId) as PeerInfo[] | undefined;
-    if (!peers || peers.length === 0) {
-      res.status(500).send(`No available peers for storeId: ${storeId}.`);
-      return;
+    if (!rootHash) {
+      const dataStore = DataStore.from(storeId);
+      const storeInfo = await dataStore.fetchCoinInfo();
+      rootHash = storeInfo.latestStore.metadata.rootHash.toString("hex");
     }
 
-    let validPeer: PeerInfo | null = null;
+    const showKeys = req.query.showKeys === "true";
 
-    // Try in batches of peers
-    while (peers.length > 0 && !validPeer) {
-      const batch = peers.splice(0, 5); // Select a batch of up to 5 peers
-      validPeer = await selectValidPeer(batch, storeId, rootHash, key);
+    const storeList = getStoresList();
 
-      if (!validPeer) {
-        console.log("No valid peers in this batch. Trying another batch...");
-      }
+    if (!storeList.includes(storeId)) {
+      const peerRedirect = await DigNetwork.findPeerWithStoreKey(
+        storeId,
+        rootHash
+      );
+
+      return res
+        .status(400)
+        .send(
+          renderStoreNotFoundView(
+            storeId,
+            rootHash,
+            chainName,
+            peerRedirect?.IpAddress
+          )
+        );
     }
 
-    if (!validPeer) {
-      res.status(500).send("No valid peers available.");
-      return;
-    }
-
-    const peerIp = validPeer.ipAddress;
-    activeConnections[peerIp] += 1;
-
-    let contentUrl = `http://${peerIp}:4161/${chainName}.${storeId}.${rootHash}`;
-    if (key) {
-      contentUrl += `/${key}`;
-    }
-
-    console.log(`Proxying request to ${contentUrl}`);
-
-    const targetUrl = new URL(contentUrl);
-
-    const start = Date.now(); // Track latency
-
-    const proxyOptions: Options = {
-      target: targetUrl.origin,
-      changeOrigin: true,
-      pathRewrite: () => `/${chainName}.${storeId}.${rootHash}/${key}`,
-      onError: (err: any) => {
-        activeConnections[peerIp] -= 1;
-        adjustPeerStats(validPeer!, false, Date.now() - start); // Adjust stats on failure
-        console.error(`Peer ${peerIp} failed. Returning error to client.`);
-        res.status(500).send("Proxy error");
-      },
-      onProxyReq: (proxyReq: any) => {
-        proxyReq.setHeader("Host", targetUrl.host);
-      },
-      onProxyRes: () => {
-        activeConnections[peerIp] -= 1;
-        adjustPeerStats(validPeer!, true, Date.now() - start); // Adjust stats on success
-        console.log(`Successfully proxied through peer ${peerIp}.`);
-      },
+    const options: DataIntegrityTreeOptions = {
+      storageMode: "local",
+      storeDir: `${digFolderPath}/stores`,
+      disableInitialize: true,
+      rootHash,
     };
 
-    const proxyMiddleware = createProxyMiddleware(proxyOptions);
-    proxyMiddleware(req, res, next);
+    const datalayer = new DataIntegrityTree(storeId, options);
+
+    res.setHeader("X-Synced", "false");
+    res.setHeader("X-Generation-Hash", rootHash);
+    res.setHeader("X-Store-Id", storeId);
+
+    if (process.env.CACHE_ALL_STORES === "") {
+      fs.mkdirSync(`${digFolderPath}/stores/${storeId}`, { recursive: true });
+    }
+
+    if (!showKeys) {
+      const indexKey = Buffer.from("index.html").toString("hex");
+      const hasIndex = datalayer.hasKey(indexKey, rootHash);
+
+      if (hasIndex) {
+        const fileExtension = extname("index.html").toLowerCase();
+        const sha256 = datalayer.getSHA256(indexKey);
+
+        if (!sha256) {
+          res.status(500).send("Error retrieving file.");
+          return;
+        }
+
+        const proofOfInclusion = datalayer.getProof(indexKey, sha256, rootHash);
+        res.setHeader("x-proof-of-inclusion", proofOfInclusion);
+
+        const mimeType = mimeTypes[fileExtension] || "application/octet-stream";
+        res.setHeader("Content-Type", mimeType);
+
+        // Get a readable stream of the index.html file
+        const stream = datalayer.getValueStream(indexKey, rootHash);
+
+        // Helper function to read the stream into a string
+        const streamToString = (
+          stream: NodeJS.ReadableStream
+        ): Promise<string> => {
+          const chunks: Buffer[] = [];
+          return new Promise((resolve, reject) => {
+            stream.on("data", (chunk) => {
+              chunks.push(Buffer.from(chunk));
+            });
+            stream.on("error", (err) => {
+              reject(err);
+            });
+            stream.on("end", () => {
+              resolve(Buffer.concat(chunks).toString("utf-8"));
+            });
+          });
+        };
+
+        try {
+          // Prepare the script tag to inject
+          const baseUrl = `${chainName}.${storeId}.${rootHash}`;
+
+          // Read the stream and get the index.html content
+          const indexContent = await streamToString(stream);
+
+          // Prepare the base tag to inject
+          const baseTag = `<udi href="${baseUrl}">`;
+
+          // Inject the base tag immediately after the opening <head> tag
+          const finalContent = indexContent.replace(
+            /<head>/i,
+            `<head>\n  ${baseTag}\n`
+          );
+
+          // Send the modified content
+          res.send(finalContent);
+        } catch (err) {
+          console.error("Error reading or modifying index.html:", err);
+          res.status(500).send("Error processing index.html file.");
+        }
+
+        return;
+      }
+    }
+
+    // If no index.html or showKeys is true, render the keys index view
+    const keys = datalayer.listKeys(rootHash);
+    const links = keys.map((key: string) => {
+      const utf8Key = hexToUtf8(key);
+      const link = `/${chainName}.${storeId}.${rootHash}/${utf8Key}`;
+      return { utf8Key, link };
+    });
+
+    res.send(renderKeysIndexView(storeId, links));
   } catch (error: any) {
-    console.trace(`Failed to proxy request for storeId ${storeId}: ${error.message}`);
-    res.status(500).send(error.message);
+    if (error.code === 404) {
+      res.setHeader("X-Synced", "false");
+      const state = await getCoinState(storeId);
+      return res.status(202).send(renderStoreSyncingView(storeId, state));
+    } else {
+      console.error("Error in getKeysIndex controller:", error);
+      res.status(500).send("An error occurred while processing your request.");
+    }
+  }
+};
+
+
+// Controller for handling the /:storeId/* route
+export const getKey = async (req: Request, res: Response) => {
+  let { chainName, storeId, rootHash } = req as any;
+  const catchall = req.params[0]; // This is the key name, i.e., the file path
+
+  const key = Buffer.from(decodeURIComponent(catchall), "utf-8").toString("hex");
+
+  try {
+    // Extract the challenge from query parameters
+    const challengeHex = req.query.challenge as string; // Expecting a hex string here
+
+    const options: DataIntegrityTreeOptions = {
+      storageMode: "local",
+      storeDir: `${digFolderPath}/stores`,
+      disableInitialize: true,
+      rootHash,
+    };
+
+    const datalayer = new DataIntegrityTree(storeId, options);
+
+    // Check if the file exists
+    if (!datalayer.hasKey(key, rootHash)) {
+      res.setHeader("X-Key-Exists", "false");
+      return res.status(404).send("Key not found.");
+    }
+
+    const sha256 = datalayer.getSHA256(key, rootHash);
+    if (!sha256) {
+      return res.status(500).send("Error retrieving file.");
+    }
+
+    const proofOfInclusion = datalayer.getProof(key, sha256, rootHash);
+
+    // Process the challenge if present
+    if (challengeHex) {
+      try {
+        // Deserialize the hex string back into a challenge object
+        const parsedChallenge = DigChallenge.deserializeChallenge(challengeHex);
+
+        if (parsedChallenge.storeId !== storeId) {
+          res.status(400).send("Invalid challenge store ID.");
+          return;
+        }
+
+        if (parsedChallenge.key !== key) {
+          res.status(400).send("Invalid challenge key.");
+          return;
+        }
+
+        if (parsedChallenge.rootHash !== rootHash) {
+          res.status(400).send("Invalid challenge root hash.");
+          return;
+        }
+
+        // Use the DigChallenge class to create a challenge response
+        const digChallenge = new DigChallenge(storeId, key, rootHash);
+        const challengeResponse = await digChallenge.createChallengeResponse(
+          parsedChallenge
+        );
+
+        res.status(200).send(challengeResponse);
+        return;
+      } catch (error) {
+        console.error("Error deserializing challenge:", error);
+        res.status(400).send("Invalid challenge format.");
+        return;
+      }
+    }
+
+    // Check if the file extension is `.clsp.run`
+    if (catchall.endsWith(".clsp.run")) {
+      console.log("Executing Chialisp code...");
+      // Extract params from the query if present (e.g., ?params=5,2,4)
+      const paramsQuery = req.query.params as string;
+      const params = paramsQuery ? paramsQuery.split(",") : [];
+
+      // Cache by the key name (file path)
+      const cacheKey = `${catchall}-${params.join(",")}`;
+      const cachedResult = chiaLispCache.get(cacheKey);
+
+      // Get the contents of the `.clsp.run` file via stream
+      const clspStream = datalayer.getValueStream(key, rootHash);
+      if (!clspStream) {
+        return res.status(404).send("CLSP file not found.");
+      }
+
+      // Convert the stream to a string
+      const clspCode = await streamToString(clspStream);
+
+      if (cachedResult) {
+        // Return cached result with necessary headers and response structure
+        res.setHeader("x-proof-of-inclusion", proofOfInclusion);
+        res.setHeader("X-Generation-Hash", rootHash);
+        res.setHeader("X-Store-Id", storeId);
+        res.setHeader("X-Key-Exists", "true");
+        res.setHeader("Content-Type", "application/json");
+        return res.json({
+          clsp: clspCode,
+          params: params,
+          result: cachedResult,
+        });
+      }
+
+      // Execute the Chialisp code using the extracted params
+      const result = await executeChialisp(clspCode, params);
+
+      // Cache the result based on the key name (file path) for 3 minutes
+      chiaLispCache.set(cacheKey, result);
+
+      // Return the result along with necessary headers and the structure
+      res.setHeader("x-proof-of-inclusion", proofOfInclusion);
+      res.setHeader("X-Generation-Hash", rootHash);
+      res.setHeader("X-Store-Id", storeId);
+      res.setHeader("X-Key-Exists", "true");
+      res.setHeader("Content-Type", "application/json");
+      return res.json({
+        clsp: clspCode,
+        params: params,
+        result: result,
+      });
+    }
+
+    // If it's not a `.clsp.run` file, proceed with the regular file handling
+    const stream = datalayer.getValueStream(key, rootHash);
+    const fileExtension = extname(catchall).toLowerCase();
+    const mimeType = mimeTypes[fileExtension] || "application/octet-stream";
+
+    res.setHeader("x-proof-of-inclusion", proofOfInclusion);
+    res.setHeader("Content-Type", mimeType);
+    res.setHeader("X-Generation-Hash", rootHash);
+    res.setHeader("X-Store-Id", storeId);
+    res.setHeader("X-Key-Exists", "true");
+
+    stream.pipe(res);
+
+    stream.on("error", (err: any) => {
+      res.setHeader("X-Key-Exists", "false");
+      console.error("Stream error:", err);
+      res.status(500).send("Error streaming file.");
+    });
+  } catch (error) {
+    res.setHeader("X-Key-Exists", "false");
+    console.error("Error in getKey controller:", error);
+    res.status(500).send("Error retrieving the requested file.");
+  }
+};
+
+
+// Controller for handling HEAD requests to /:storeId/*
+export const headKey = async (req: Request, res: Response) => {
+  try {
+    // @ts-ignore
+    let { storeId, rootHash } = req;
+    const catchall = req.params[0];
+
+    if (!rootHash) {
+      const dataStore = DataStore.from(storeId);
+      const storeInfo = await dataStore.fetchCoinInfo();
+      rootHash = storeInfo.latestStore.metadata.rootHash.toString("hex");
+    }
+
+    const key = Buffer.from(catchall, "utf-8").toString("hex");
+
+    const options: DataIntegrityTreeOptions = {
+      storageMode: "local",
+      storeDir: `${digFolderPath}/stores`,
+      disableInitialize: true,
+      rootHash,
+    };
+
+    const datalayer = new DataIntegrityTree(storeId, options);
+
+    if (!datalayer.hasKey(key, rootHash)) {
+      res.setHeader("X-Key-Exists", "false");
+      res.status(404).send("File not found.");
+      return;
+    }
+
+    const fileExtension = extname(catchall).toLowerCase();
+    const sha256 = datalayer.getSHA256(key, rootHash);
+
+    if (!sha256) {
+      res.setHeader("X-Key-Exists", "false");
+      res.status(500).send("Error retrieving file.");
+      return;
+    }
+
+    const proofOfInclusion = datalayer.getProof(key, sha256, rootHash);
+    res.setHeader("x-proof-of-inclusion", proofOfInclusion);
+
+    const mimeType = mimeTypes[fileExtension] || "application/octet-stream";
+    res.setHeader("Content-Type", mimeType);
+    res.setHeader("X-Generation-Hash", rootHash);
+    res.setHeader("X-Store-Id", storeId);
+    res.setHeader("X-Key-Exists", "true");
+
+    res.status(200).end(); // Respond with headers only, no content
+  } catch (error) {
+    res.setHeader("X-Key-Exists", "false");
+    console.error("Error in headKey controller:", error);
+    res.status(500).send("Error retrieving the requested file.");
   }
 };
