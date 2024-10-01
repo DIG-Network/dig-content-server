@@ -253,7 +253,7 @@ export const getKey = async (req: Request, res: Response) => {
     // Check if the file exists
     if (!datalayer.hasKey(key, rootHash)) {
       res.setHeader("X-Key-Exists", "false");
-      return res.status(404).send("Key not found.");
+      return getKeysIndex(req, res);
     }
 
     const sha256 = datalayer.getSHA256(key, rootHash);
