@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.0.1-alpha.68](https://github.com/DIG-Network/dig-content-server/compare/v0.0.1-alpha.67...v0.0.1-alpha.68) (2024-10-01)
+
+
+### Bug Fixes
+
+* return index on key not found ([9d9d9bb](https://github.com/DIG-Network/dig-content-server/commit/9d9d9bb299ffe5e8f64e4efe90aeb5e8daae00f1))
+
 ### [0.0.1-alpha.67](https://github.com/DIG-Network/dig-content-server/compare/v0.0.1-alpha.66...v0.0.1-alpha.67) (2024-10-01)
 
 ### [0.0.1-alpha.66](https://github.com/DIG-Network/dig-content-server/compare/v0.0.1-alpha.65...v0.0.1-alpha.66) (2024-10-01)
