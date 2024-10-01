@@ -33,7 +33,15 @@ jobs:
         id: project-name
         run: |
           PROJECT_NAME=$(jq -r '.name' package.json)
+          if [ -z "$PROJECT_NAME" ]; then
+            echo "Project name not found in package.json!"
+            exit 1
+          fi
           echo "PROJECT_NAME=$PROJECT_NAME" >> $GITHUB_ENV
+
+      - name: Debug GITHUB_REF
+        run: |
+          echo "GITHUB_REF: $GITHUB_REF"
 
       - name: Get tag name
         id: tag-name
