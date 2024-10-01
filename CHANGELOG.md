@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.0.1-alpha.66](https://github.com/DIG-Network/dig-content-server/compare/v0.0.1-alpha.65...v0.0.1-alpha.66) (2024-10-01)
+
+### [0.0.1-alpha.65](https://github.com/DIG-Network/dig-content-server/compare/v0.0.1-alpha.64...v0.0.1-alpha.65) (2024-09-30)
+
+
+### Features
+
+* add additional optimization to load balancer ([df2bd42](https://github.com/DIG-Network/dig-content-server/commit/df2bd4256f09708edbf0033e3add61655455b07d))
+* add additional optimization to load balancer ([72b2a99](https://github.com/DIG-Network/dig-content-server/commit/72b2a99448b502e050816d8f21bf013a7a897c09))
+
 ### [0.0.1-alpha.64](https://github.com/DIG-Network/dig-content-server/compare/v0.0.1-alpha.63...v0.0.1-alpha.64) (2024-09-30)
 
 
