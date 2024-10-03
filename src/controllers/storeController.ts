@@ -25,6 +25,7 @@ import { hexToUtf8 } from "../utils/hexUtils";
 import { getStorageLocation } from "../utils/storage";
 import NodeCache from "node-cache";
 import { Readable } from "stream";
+import cheerio from 'cheerio';
 
 const digFolderPath = getStorageLocation();
 const chiaLispCache = new NodeCache({ stdTTL: 180 });
@@ -182,21 +183,21 @@ export const getKeysIndex = async (req: Request, res: Response) => {
         };
 
         try {
-          // Prepare the script tag to inject
-          const baseUrl = `${chainName}.${storeId}.${rootHash}`;
-
-          // Read the stream and get the index.html content
           const indexContent = await streamToString(stream);
 
-          // Prepare the base tag to inject
+          // Load the HTML content into cheerio
+          const $ = cheerio.load(indexContent);
+        
+          // Create the UDI tag
+          const baseUrl = `${chainName}.${storeId}.${rootHash}`;
           const baseTag = `<udi href="${baseUrl}" />`;
-
-          // Inject the base tag immediately after the opening <head> tag
-          const finalContent = indexContent.replace(
-            /<head>/i,
-            `<head>\n  ${baseTag}\n`
-          );
-
+        
+          // Inject the UDI tag into the <head>
+          $('head').prepend(`\n  ${baseTag}\n`);
+        
+          // Get the modified HTML
+          const finalContent = $.html();
+        
           // Send the modified content
           res.send(finalContent);
         } catch (err) {
