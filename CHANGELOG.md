@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.0.1-alpha.73](https://github.com/DIG-Network/dig-content-server/compare/v0.0.1-alpha.72...v0.0.1-alpha.73) (2024-10-03)
+
+
+### Bug Fixes
+
+* udi tag ([1e1221f](https://github.com/DIG-Network/dig-content-server/commit/1e1221f9ce006d00dfb2a88e18dbb24fecbbab56))
+* udi tag ([ed8fb7f](https://github.com/DIG-Network/dig-content-server/commit/ed8fb7fa544af090f65eda3b616339864d1cc6d8))
+
 ### [0.0.1-alpha.72](https://github.com/DIG-Network/dig-content-server/compare/v0.0.1-alpha.71...v0.0.1-alpha.72) (2024-10-03)
 
 ### [0.0.1-alpha.71](https://github.com/DIG-Network/dig-content-server/compare/v0.0.1-alpha.70...v0.0.1-alpha.71) (2024-10-02)
