@@ -189,7 +189,7 @@ export const getKeysIndex = async (req: Request, res: Response) => {
           const indexContent = await streamToString(stream);
 
           // Prepare the base tag to inject
-          const baseTag = `<udi href="${baseUrl}">`;
+          const baseTag = `<udi href="${baseUrl}" />`;
 
           // Inject the base tag immediately after the opening <head> tag
           const finalContent = indexContent.replace(
