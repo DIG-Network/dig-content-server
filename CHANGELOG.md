@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.0.1-alpha.83](https://github.com/DIG-Network/dig-content-server/compare/v0.0.1-alpha.82...v0.0.1-alpha.83) (2024-10-04)
+
+
+### Bug Fixes
+
+* adjust cookie timeout ([6f25b9f](https://github.com/DIG-Network/dig-content-server/commit/6f25b9fdaf06d79bec3cb5585413041e1a5c0cc9))
+
 ### [0.0.1-alpha.82](https://github.com/DIG-Network/dig-content-server/compare/v0.0.1-alpha.81...v0.0.1-alpha.82) (2024-10-04)
 
 ### [0.0.1-alpha.81](https://github.com/DIG-Network/dig-content-server/compare/v0.0.1-alpha.80...v0.0.1-alpha.81) (2024-10-04)
