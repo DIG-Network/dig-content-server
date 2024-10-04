@@ -185,8 +185,8 @@ export const parseUdi = async (
       {
         httpOnly: true,
         secure: false,
-        maxAge: 5 * 60 * 1000, // Cookie expires after 5 minutes
-        expires: new Date(Date.now() + 5 * 60 * 1000),
+        maxAge: 1 * 60 * 1000, // Cookie expires after 5 minutes
+        expires: new Date(Date.now() + 1 * 60 * 1000),
       }
     );
 
