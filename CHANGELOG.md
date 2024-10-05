@@ -2,6 +2,8 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.0.1-alpha.85](https://github.com/DIG-Network/dig-content-server/compare/v0.0.1-alpha.84...v0.0.1-alpha.85) (2024-10-05)
+
 ### [0.0.1-alpha.84](https://github.com/DIG-Network/dig-content-server/compare/v0.0.1-alpha.83...v0.0.1-alpha.84) (2024-10-05)
 
 ### [0.0.1-alpha.83](https://github.com/DIG-Network/dig-content-server/compare/v0.0.1-alpha.82...v0.0.1-alpha.83) (2024-10-04)
