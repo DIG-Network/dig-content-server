@@ -78,7 +78,8 @@ export const getStoresIndex = async (req: Request, res: Response) => {
   const storeList = getStoresList();
   const rows = await Promise.all(
     storeList.map(async (storeId: string) => {
-      const state = await getCoinState(storeId);
+      const dataStore = DataStore.from(storeId);
+      const { latestStore: state} = await dataStore.fetchCoinInfo();
       const formattedBytes = formatBytes(Number(state.metadata.bytes));
       return renderIndexView(
         chainName || "chia",
@@ -189,13 +190,13 @@ export const getKeysIndex = async (req: Request, res: Response) => {
           const indexContent = await streamToString(stream);
 
           // Prepare the base tag to inject
-       //   const baseTag = `<udi href="${baseUrl}" />`;
+          //   const baseTag = `<udi href="${baseUrl}" />`;
 
           // Inject the base tag immediately after the opening <head> tag
-       //   const finalContent = indexContent.replace(
-     //       /<head>/i,
-     //       `<head>\n  ${baseTag}\n`
-      //    );
+          //   const finalContent = indexContent.replace(
+          //       /<head>/i,
+          //       `<head>\n  ${baseTag}\n`
+          //    );
 
           // Send the modified content
           res.send(indexContent);
@@ -229,13 +230,14 @@ export const getKeysIndex = async (req: Request, res: Response) => {
   }
 };
 
-
 // Controller for handling the /:storeId/* route
 export const getKey = async (req: Request, res: Response) => {
   let { chainName, storeId, rootHash } = req as any;
   const catchall = req.params[0]; // This is the key name, i.e., the file path
 
-  const key = Buffer.from(decodeURIComponent(catchall), "utf-8").toString("hex");
+  const key = Buffer.from(decodeURIComponent(catchall), "utf-8").toString(
+    "hex"
+  );
 
   try {
     // Extract the challenge from query parameters
@@ -376,7 +378,6 @@ export const getKey = async (req: Request, res: Response) => {
     res.status(500).send("Error retrieving the requested file.");
   }
 };
-
 
 // Controller for handling HEAD requests to /:storeId/*
 export const headKey = async (req: Request, res: Response) => {

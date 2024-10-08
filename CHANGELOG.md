@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.0.1-alpha.90](https://github.com/DIG-Network/dig-content-server/compare/v0.0.1-alpha.89...v0.0.1-alpha.90) (2024-10-08)
+
+
+### Bug Fixes
+
+* no labels in content server ([2709f20](https://github.com/DIG-Network/dig-content-server/commit/2709f20c088faed6e46c8673b93356254173486c))
+
 ### [0.0.1-alpha.89](https://github.com/DIG-Network/dig-content-server/compare/v0.0.1-alpha.88...v0.0.1-alpha.89) (2024-10-07)
 
 ### [0.0.1-alpha.88](https://github.com/DIG-Network/dig-content-server/compare/v0.0.1-alpha.87...v0.0.1-alpha.88) (2024-10-07)
