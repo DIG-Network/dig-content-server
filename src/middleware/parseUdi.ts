@@ -143,7 +143,7 @@ export const parseUdi = async (
 
     // Early exit: If both chainName and rootHash are missing, fetch rootHash and redirect with both added
     if (!chainName && !rootHash) {
-      console.log("Both chainName and rootHash missing, fetching rootHash...");
+      console.log("Both chainName and rootHash omitted, fetching rootHash...");
       const storeInfo = await dataStore.fetchCoinInfo();
       rootHash = storeInfo.latestStore.metadata.rootHash.toString("hex");
 
@@ -154,7 +154,7 @@ export const parseUdi = async (
 
     // If chainName is missing, assume "chia"
     if (!chainName) {
-      console.log("ChainName missing, defaulting to 'chia'.");
+      console.log("ChainName omitted, defaulting to 'chia'.");
       return res.redirect(302, `/chia.${pathSegment}${appendPath}${queryString ? '?' + queryString : ''}`);
     }
 
@@ -166,7 +166,7 @@ export const parseUdi = async (
 
     // If rootHash is missing, fetch the latest one
     if (!rootHash) {
-      console.log("RootHash missing, fetching the latest rootHash...");
+      console.log("RootHash omitted, fetching the latest rootHash...");
       const storeInfo = await dataStore.fetchCoinInfo();
       rootHash = storeInfo.latestStore.metadata.rootHash.toString("hex");
     }
