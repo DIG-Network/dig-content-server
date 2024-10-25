@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.0.1-alpha.93](https://github.com/DIG-Network/dig-content-server/compare/v0.0.1-alpha.92...v0.0.1-alpha.93) (2024-10-25)
+
+
+### Features
+
+* add cache headers to content server ([64fdd76](https://github.com/DIG-Network/dig-content-server/commit/64fdd76eaaca2b5bba6272c2ae77d0dfe3040995))
+
 ### [0.0.1-alpha.92](https://github.com/DIG-Network/dig-content-server/compare/v0.0.1-alpha.91...v0.0.1-alpha.92) (2024-10-10)
 
 ### [0.0.1-alpha.91](https://github.com/DIG-Network/dig-content-server/compare/v0.0.1-alpha.90...v0.0.1-alpha.91) (2024-10-08)
