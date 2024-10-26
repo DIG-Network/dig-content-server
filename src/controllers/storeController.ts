@@ -333,10 +333,6 @@ export const getKey = async (req: Request, res: Response) => {
         res.setHeader("X-Key-Exists", "true");
         res.setHeader("Content-Type", "application/json");
 
-        const maxAgeInSeconds = 60 * 60 * 24 * 30; // Cache for 30 days
-        res.setHeader('Cache-Control', `public, max-age=${maxAgeInSeconds}`);
-        res.setHeader('Expires', new Date(Date.now() + maxAgeInSeconds * 1000).toUTCString());
-
         return res.json({
           clsp: clspCode,
           params: params,
@@ -356,10 +352,6 @@ export const getKey = async (req: Request, res: Response) => {
       res.setHeader("X-Store-Id", storeId);
       res.setHeader("X-Key-Exists", "true");
       res.setHeader("Content-Type", "application/json");
-
-      const maxAgeInSeconds = 60 * 60 * 24 * 30; // Cache for 30 days
-      res.setHeader('Cache-Control', `public, max-age=${maxAgeInSeconds}`);
-      res.setHeader('Expires', new Date(Date.now() + maxAgeInSeconds * 1000).toUTCString());
       
       return res.json({
         clsp: clspCode,
@@ -378,6 +370,10 @@ export const getKey = async (req: Request, res: Response) => {
     res.setHeader("X-Generation-Hash", rootHash);
     res.setHeader("X-Store-Id", storeId);
     res.setHeader("X-Key-Exists", "true");
+
+    const maxAgeInSeconds = 60 * 60 * 24 * 30; // Cache for 30 days
+    res.setHeader('Cache-Control', `public, max-age=${maxAgeInSeconds}`);
+    res.setHeader('Expires', new Date(Date.now() + maxAgeInSeconds * 1000).toUTCString());
 
     stream.pipe(res);
 
