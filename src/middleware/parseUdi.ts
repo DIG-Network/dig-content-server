@@ -46,9 +46,6 @@ export const parseUdi = async (
     // Apply removeDuplicatePathPart to the request path
     const modifiedPath = removeDuplicatePathPart(path);
 
-    // Re-append the query string if it exists
-    const modifiedUrl = queryString ? `${modifiedPath}?${queryString}` : modifiedPath;
-
     const referrer = req.get("Referer") || "";
     let cookieData = req.cookies.udiData || null;
 
@@ -68,13 +65,22 @@ export const parseUdi = async (
         : "";
 
     // Split the pathSegment by periods to extract potential components
-    const parts = pathSegment.split(".");
+    const parts = pathSegment.split(":");
 
     if (parts.length === 1 && parts[0].length !== 64) {
       appendPath = `/${parts[0]}${appendPath}`;
     }
 
-    if (parts.length === 3) {
+    if (parts.length === 5) {
+      chainName = parts[2];
+      storeId = parts[3];
+      rootHash = parts[4]; // rootHash provided in the URL   
+    }
+    else if (parts.length === 4) {
+      chainName = parts[2];
+      storeId = parts[3];
+    }
+    else if (parts.length === 3) {
       chainName = parts[0];
       storeId = parts[1];
       rootHash = parts[2]; // rootHash provided in the URL
@@ -108,7 +114,7 @@ export const parseUdi = async (
         console.warn("Invalid storeId, redirecting to referrer:", referrer);
         return res.redirect(
           302,
-          `/${cookieChainName}.${cookieStoreId}` + appendPath
+          `/urn:dig:${cookieChainName}:${cookieStoreId}` + appendPath
         );
       }
 
@@ -147,7 +153,7 @@ export const parseUdi = async (
       const storeInfo = await dataStore.fetchCoinInfo();
       rootHash = storeInfo.latestStore.metadata.rootHash.toString("hex");
 
-      const redirect = `/chia.${storeId}.${rootHash}${appendPath}${queryString ? '?' + queryString : ''}`;
+      const redirect = `/urn:dig:chia:${storeId}:${rootHash}${appendPath}${queryString ? '?' + queryString : ''}`;
       console.log("Redirecting to:", redirect);
       return res.redirect(302, redirect);
     }
@@ -155,7 +161,7 @@ export const parseUdi = async (
     // If chainName is missing, assume "chia"
     if (!chainName) {
       console.log("ChainName omitted, defaulting to 'chia'.");
-      return res.redirect(302, `/chia.${pathSegment}${appendPath}${queryString ? '?' + queryString : ''}`);
+      return res.redirect(302, `/urn:dig:chia:${pathSegment}${appendPath}${queryString ? '?' + queryString : ''}`);
     }
 
     // Validate the chainName

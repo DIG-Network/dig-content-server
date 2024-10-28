@@ -98,7 +98,7 @@ export const renderStoreNotFoundView = (
             <div class="box">
               <h2 class="message">Store Not Found on This Peer</h2>
               <p>Click the button below to redirect to another peer.</p>
-              <a class="button" href="http://${peerIp}:4161/${chainName}.${storeId}.${rootHash}">
+              <a class="button" href="http://${peerIp}:4161/urn:dig:${chainName}:${storeId}:${rootHash}">
                 Redirect
               </a>
             </div>
