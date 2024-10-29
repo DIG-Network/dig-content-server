@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import fs from "fs";
+import path from "path";
 
 import {
   getStoresList,
@@ -187,22 +188,10 @@ export const getKeysIndex = async (req: Request, res: Response) => {
         };
 
         try {
-          // Prepare the script tag to inject
-          const baseUrl = `${chainName}.${storeId}.${rootHash}`;
-
           // Read the stream and get the index.html content
           const indexContent = await streamToString(stream);
 
-          // Prepare the base tag to inject
-          //   const baseTag = `<udi href="${baseUrl}" />`;
-
-          // Inject the base tag immediately after the opening <head> tag
-          //   const finalContent = indexContent.replace(
-          //       /<head>/i,
-          //       `<head>\n  ${baseTag}\n`
-          //    );
-
-          // Send the modified content
+          // Send the content
           res.send(indexContent);
         } catch (err) {
           console.error("Error reading or modifying index.html:", err);
@@ -213,6 +202,30 @@ export const getKeysIndex = async (req: Request, res: Response) => {
       }
     }
 
+    // Implement caching of the keysIndexView output
+
+    // Define the cache directory and file path
+    const cacheDir = path.join(digFolderPath, 'cache', storeId);
+    const cacheFilePath = path.join(cacheDir, `${rootHash}.html`);
+
+    // Ensure the cache directory exists
+    fs.mkdirSync(cacheDir, { recursive: true });
+
+    // Check if the cache file exists
+    if (fs.existsSync(cacheFilePath)) {
+      // Cache file exists, read and send it
+      try {
+        const cachedContent = fs.readFileSync(cacheFilePath, 'utf-8');
+        res.setHeader('Content-Type', 'text/html');
+        res.send(cachedContent);
+        return;
+      } catch (err) {
+        console.error("Error reading cache file:", err);
+        // If error reading cache file, proceed to generate content
+      }
+    }
+
+    // If cache file does not exist or reading failed, generate the content
     // If no index.html or showKeys is true, render the keys index view
     const keys = datalayer.listKeys(rootHash);
     const links = keys.map((key: string) => {
@@ -221,11 +234,23 @@ export const getKeysIndex = async (req: Request, res: Response) => {
       return { utf8Key, link };
     });
 
-    res.send(renderKeysIndexView(storeId, links));
+    const htmlContent = renderKeysIndexView(storeId, links);
+
+    // Write the content to cache file
+    try {
+      fs.writeFileSync(cacheFilePath, htmlContent, 'utf-8');
+    } catch (err) {
+      console.error("Error writing cache file:", err);
+      // Proceed to send the content even if cache writing failed
+    }
+
+    res.setHeader('Content-Type', 'text/html');
+    res.send(htmlContent);
   } catch (error: any) {
     if (error.code === 404) {
       res.setHeader("X-Synced", "false");
       const state = await getCoinState(storeId);
+      console.log(error);
       return res.status(202).send(renderStoreSyncingView(storeId, state));
     } else {
       console.error("Error in getKeysIndex controller:", error);
