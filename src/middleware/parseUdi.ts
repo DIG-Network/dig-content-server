@@ -22,8 +22,10 @@ function removeDuplicatePathPart(path: string): string {
   }
 
   const modifiedPath = '/' + parts.join('/');
-  console.log('Original path:', path);
-  console.log('Modified path:', modifiedPath);
+  if (path !== modifiedPath) {
+    console.log('Original path:', path);
+    console.log('Modified path:', modifiedPath);
+  }
 
   // Reconstruct the path with a leading slash
   return modifiedPath;
