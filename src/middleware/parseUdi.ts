@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import { renderUnknownChainView } from "../views";
 import { DataStore } from "@dignetwork/dig-sdk";
-import { app } from "../app";
+import { Udi } from "../utils/udi";
 
 const validChainNames = ["chia"]; // List of valid chain names
 
@@ -47,7 +47,6 @@ export const parseUdi = async (
     const modifiedPath = removeDuplicatePathPart(path);
 
     const referrer = req.get("Referer") || "";
-    let cookieData = req.cookies.udiData || null;
 
     let chainName: string | null = null;
     let storeId: string = "";
@@ -108,41 +107,18 @@ export const parseUdi = async (
 
     // Validate storeId length
     if (!storeId || storeId.length !== 64) {
-      if (cookieData) {
-        const { chainName: cookieChainName, storeId: cookieStoreId } = cookieData;
-
-        console.warn("Invalid storeId, redirecting to referrer:", referrer);
-        return res.redirect(
-          302,
-          `/urn:dig:${cookieChainName}:${cookieStoreId}` + appendPath
-        );
-      }
-
       if (referrer) {
-        console.warn("Invalid storeId, redirecting to referrer:", referrer);
-        return res.redirect(302, referrer + appendPath);
+        // the referred might be the storeId or it might be a resource within the storeId
+        // like another script - in the code below we parse that and redirect to the storeId
+        const url = new URL(referrer);
+        const pathParts = url.pathname.split('/').filter(part => part.length > 0);
+        const store = pathParts.length > 0 ? `/${pathParts[0]}` : "";
+
+        console.warn(`Invalid storeId [${storeId}], redirecting to referrer:`, `${url.origin}${store}`);
+        return res.redirect(302, `${url.origin}${store}${appendPath}`);
       }
+
       return res.status(400).send("Invalid or missing storeId.");
-    }
-
-    // Fallback to cookie only if storeId matches the cookie's storeId
-    if (!chainName || !rootHash) {
-      if (cookieData) {
-        const {
-          chainName: cookieChainName,
-          storeId: cookieStoreId,
-          rootHash: cookieRootHash,
-        } = cookieData;
-
-        // Only use cookie data if the storeId matches
-        if (!storeId || cookieStoreId === storeId || cookieRootHash === rootHash) {
-          console.log("Using cookie data as storeId matches:", storeId);
-          chainName = chainName || cookieChainName;
-          rootHash = rootHash || cookieRootHash;
-        } else {
-          console.log("StoreId changed, ignoring cookie data.");
-        }
-      }
     }
 
     const dataStore = DataStore.from(storeId);
@@ -153,7 +129,8 @@ export const parseUdi = async (
       const storeInfo = await dataStore.fetchCoinInfo();
       rootHash = storeInfo.latestStore.metadata.rootHash.toString("hex");
 
-      const redirect = `/urn:dig:chia:${storeId}:${rootHash}${appendPath}${queryString ? '?' + queryString : ''}`;
+      const udi = new Udi("chia", storeId, rootHash, `${appendPath}${queryString ? '?' + queryString : ''}`);
+      const redirect = `/${udi.toUrn()}`;
       console.log("Redirecting to:", redirect);
       return res.redirect(302, redirect);
     }
@@ -161,7 +138,10 @@ export const parseUdi = async (
     // If chainName is missing, assume "chia"
     if (!chainName) {
       console.log("ChainName omitted, defaulting to 'chia'.");
-      return res.redirect(302, `/urn:dig:chia:${pathSegment}${appendPath}${queryString ? '?' + queryString : ''}`);
+      const udi = new Udi("chia", pathSegment, null, `${appendPath}${queryString ? '?' + queryString : ''}`);
+      const redirect = `/${udi.toUrn()}`;
+      console.log("Redirecting to:", redirect);
+      return res.redirect(302, redirect);
     }
 
     // Validate the chainName
@@ -183,18 +163,7 @@ export const parseUdi = async (
     // @ts-ignore
     req.storeId = storeId;
     // @ts-ignore
-    req.rootHash = rootHash;
-
-    res.cookie(
-      "udiData",
-      { chainName, storeId, rootHash },
-      {
-        httpOnly: true,
-        secure: false,
-        maxAge: 1 * 60 * 1000, // Cookie expires after 5 minutes
-        expires: new Date(Date.now() + 1 * 60 * 1000),
-      }
-    );
+    req.rootHash = rootHash
 
     next();
   } catch (error) {
