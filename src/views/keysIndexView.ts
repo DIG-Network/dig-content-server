@@ -59,6 +59,7 @@ export const renderKeysIndexView = (
     <html>
       <head>
         <title>Index of ${storeId}</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <style>
           body {
             font-family: Arial, sans-serif;
@@ -68,6 +69,7 @@ export const renderKeysIndexView = (
           }
           .navigation {
             display: flex;
+            flex-wrap: wrap;
             align-items: center;
             margin-bottom: 20px;
           }
@@ -76,6 +78,7 @@ export const renderKeysIndexView = (
             margin-right: 20px;
             color: #007bff;
             text-decoration: none;
+            font-size: 1.2em;
           }
           #up-button:hover {
             text-decoration: underline;
@@ -85,15 +88,20 @@ export const renderKeysIndexView = (
             color: #333;
             margin: 0;
             flex-grow: 1;
+            min-width: 200px;
           }
           #search-input {
-            margin-left: 20px;
-            padding: 5px 10px;
+            margin-left: auto;
+            padding: 8px 12px;
             font-size: 1em;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            width: 100%;
+            max-width: 300px;
           }
           .grid-container {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
             grid-gap: 20px;
           }
           .grid-item {
@@ -102,10 +110,14 @@ export const renderKeysIndexView = (
             padding: 10px;
             border-radius: 8px;
             border: 1px solid #ddd;
+            transition: transform 0.2s;
+          }
+          .grid-item:hover {
+            transform: scale(1.05);
           }
           .grid-item svg {
-            width: 64px;
-            height: 64px;
+            width: 48px;
+            height: 48px;
           }
           .item-name {
             margin-top: 10px;
@@ -119,6 +131,30 @@ export const renderKeysIndexView = (
           }
           a:hover .item-name {
             text-decoration: underline;
+          }
+          @media (max-width: 600px) {
+            body {
+              padding: 10px;
+            }
+            .navigation {
+              flex-direction: column;
+              align-items: flex-start;
+            }
+            #up-button {
+              margin-bottom: 10px;
+            }
+            h1 {
+              font-size: 1.5em;
+            }
+            #search-input {
+              margin-left: 0;
+              margin-top: 10px;
+              width: 100%;
+            }
+            .grid-item svg {
+              width: 40px;
+              height: 40px;
+            }
           }
         </style>
       </head>
