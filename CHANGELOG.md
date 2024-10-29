@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.0.1-alpha.96](https://github.com/DIG-Network/dig-content-server/compare/v0.0.1-alpha.95...v0.0.1-alpha.96) (2024-10-29)
+
+
+### Features
+
+* add fs view to index renderer ([419db41](https://github.com/DIG-Network/dig-content-server/commit/419db4162339b71ac3f88502f9cc8e2c191cd7e3))
+
 ### [0.0.1-alpha.95](https://github.com/DIG-Network/dig-content-server/compare/v0.0.1-alpha.94...v0.0.1-alpha.95) (2024-10-26)
 
 ### [0.0.1-alpha.94](https://github.com/DIG-Network/dig-content-server/compare/v0.0.1-alpha.93...v0.0.1-alpha.94) (2024-10-26)
