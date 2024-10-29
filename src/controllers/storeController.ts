@@ -113,14 +113,12 @@ export const getKeysIndex = async (req: Request, res: Response) => {
         storeId,
         rootHash
       );
-
+      const udi = new Udi(chainName, storeId, rootHash);
       return res
         .status(400)
         .send(
           renderStoreNotFoundView(
-            storeId,
-            rootHash,
-            chainName,
+            udi,
             peerRedirect?.IpAddress
           )
         );
