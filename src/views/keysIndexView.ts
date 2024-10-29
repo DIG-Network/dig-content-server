@@ -19,10 +19,11 @@ export const renderKeysIndexView = (
 
       parts.forEach((part, index) => {
         if (!currentLevel[part]) {
+          const isFolder = index < parts.length - 1 || utf8Key.endsWith('/');
           currentLevel[part] = {
             __children: {},
-            __isFolder: index < parts.length - 1 || utf8Key.endsWith('/'),
-            __link: index === parts.length - 1 ? link : null,
+            __isFolder: isFolder,
+            __link: !isFolder ? link : null,
           };
         }
         currentLevel = currentLevel[part].__children;
@@ -58,6 +59,7 @@ export const renderKeysIndexView = (
     <html>
       <head>
         <title>Index of ${storeId}</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <style>
           body {
             font-family: Arial, sans-serif;
@@ -67,6 +69,7 @@ export const renderKeysIndexView = (
           }
           .navigation {
             display: flex;
+            flex-wrap: wrap;
             align-items: center;
             margin-bottom: 20px;
           }
@@ -75,6 +78,7 @@ export const renderKeysIndexView = (
             margin-right: 20px;
             color: #007bff;
             text-decoration: none;
+            font-size: 1.2em;
           }
           #up-button:hover {
             text-decoration: underline;
@@ -83,10 +87,21 @@ export const renderKeysIndexView = (
             font-size: 2em;
             color: #333;
             margin: 0;
+            flex-grow: 1;
+            min-width: 200px;
+          }
+          #search-input {
+            margin-left: auto;
+            padding: 8px 12px;
+            font-size: 1em;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            width: 100%;
+            max-width: 300px;
           }
           .grid-container {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
             grid-gap: 20px;
           }
           .grid-item {
@@ -95,10 +110,14 @@ export const renderKeysIndexView = (
             padding: 10px;
             border-radius: 8px;
             border: 1px solid #ddd;
+            transition: transform 0.2s;
+          }
+          .grid-item:hover {
+            transform: scale(1.05);
           }
           .grid-item svg {
-            width: 64px;
-            height: 64px;
+            width: 48px;
+            height: 48px;
           }
           .item-name {
             margin-top: 10px;
@@ -113,12 +132,37 @@ export const renderKeysIndexView = (
           a:hover .item-name {
             text-decoration: underline;
           }
+          @media (max-width: 600px) {
+            body {
+              padding: 10px;
+            }
+            .navigation {
+              flex-direction: column;
+              align-items: flex-start;
+            }
+            #up-button {
+              margin-bottom: 10px;
+            }
+            h1 {
+              font-size: 1.5em;
+            }
+            #search-input {
+              margin-left: 0;
+              margin-top: 10px;
+              width: 100%;
+            }
+            .grid-item svg {
+              width: 40px;
+              height: 40px;
+            }
+          }
         </style>
       </head>
       <body>
         <div class="navigation">
           <a id="up-button" href="#">Up</a>
           <h1>Index of ${storeId}</h1>
+          <input type="text" id="search-input" placeholder="Filter items..." />
         </div>
         <div class="grid-container" id="grid-container">
           <!-- Items will be dynamically generated here -->
@@ -129,17 +173,27 @@ export const renderKeysIndexView = (
             const gridContainer = document.getElementById('grid-container');
             const h1 = document.querySelector('h1');
             const upButton = document.getElementById('up-button');
+            const searchInput = document.getElementById('search-input');
 
             // SVG icons
             const folderSvg = \`${folderSvg}\`;
             const fileSvg = \`${fileSvg}\`;
 
+            // Debounce function
+            function debounce(func, wait) {
+              let timeout;
+              return function(...args) {
+                clearTimeout(timeout);
+                timeout = setTimeout(() => func.apply(this, args), wait);
+              };
+            }
+
             function render() {
               const currentPath = decodeURIComponent(location.hash.slice(1)) || '';
               h1.textContent = 'Index of ${storeId}/' + currentPath;
 
-              // Clear existing items
-              gridContainer.innerHTML = '';
+              // Get the search query
+              const query = searchInput.value.toLowerCase();
 
               // Get the current level in the file tree
               const parts = currentPath ? currentPath.split('/').filter(Boolean) : [];
@@ -156,20 +210,43 @@ export const renderKeysIndexView = (
                 }
               }
 
-              // Generate HTML for items in the current level
-              const itemsHtml = Object.keys(currentLevel)
-                .map((name) => {
-                  const item = currentLevel[name];
-                  const isFolder = Object.keys(item.__children).length > 0 || item.__isFolder;
-                  const itemPath = currentPath ? currentPath + '/' + name : name;
-                  const link = isFolder ? '#' : item.__link;
-                  const icon = isFolder ? folderSvg : fileSvg;
+              // Get the items and sort folders first
+              const items = Object.keys(currentLevel).map((name) => {
+                const item = currentLevel[name];
+                const isFolder = item.__isFolder || Object.keys(item.__children).length > 0;
+                const itemPath = currentPath ? currentPath + '/' + name : name;
+                const link = isFolder ? '#' : item.__link;
+                const icon = isFolder ? folderSvg : fileSvg;
+                return {
+                  name,
+                  isFolder,
+                  itemPath,
+                  link,
+                  icon,
+                };
+              });
 
+              // Filter items based on the search query
+              const filteredItems = items.filter((item) => {
+                return item.name.toLowerCase().includes(query);
+              });
+
+              // Sort items: folders first, then files
+              filteredItems.sort((a, b) => {
+                if (a.isFolder === b.isFolder) {
+                  return a.name.localeCompare(b.name);
+                }
+                return a.isFolder ? -1 : 1;
+              });
+
+              // Generate HTML for items
+              const itemsHtml = filteredItems
+                .map((item) => {
                   return \`
                     <div class="grid-item">
-                      <a href="\${isFolder ? '#' : link}" \${isFolder ? \`onclick="navigateTo('\${encodeURIComponent(itemPath)}'); return false;"\` : 'target="_blank"'}>
-                        \${icon}
-                        <div class="item-name">\${name}</div>
+                      <a href="\${item.isFolder ? '#' : item.link}" \${item.isFolder ? \`onclick="navigateTo('\${encodeURIComponent(item.itemPath)}'); return false;"\` : 'target="_blank"'}>
+                        \${item.icon}
+                        <div class="item-name">\${item.name}</div>
                       </a>
                     </div>
                   \`;
@@ -195,8 +272,15 @@ export const renderKeysIndexView = (
               location.hash = path;
             };
 
-            render();
+            // Debounced render function for search input
+            const debouncedRender = debounce(render, 300);
+
+            // Event listeners
             window.addEventListener('hashchange', render);
+            searchInput.addEventListener('input', debouncedRender);
+
+            // Initial render
+            render();
           })();
         </script>
       </body>

@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.0.1-alpha.97](https://github.com/DIG-Network/dig-content-server/compare/v0.0.1-alpha.96...v0.0.1-alpha.97) (2024-10-29)
+
+
+### Features
+
+* add mobile layout for index page ([d9cca47](https://github.com/DIG-Network/dig-content-server/commit/d9cca47457cead92efb2f5579e70fd6149f8edeb))
+* client side filter ([f3d8b20](https://github.com/DIG-Network/dig-content-server/commit/f3d8b2094185a1cd157ccecc4b5b792fe8a611d9))
+
 ### [0.0.1-alpha.96](https://github.com/DIG-Network/dig-content-server/compare/v0.0.1-alpha.95...v0.0.1-alpha.96) (2024-10-29)
 
 
