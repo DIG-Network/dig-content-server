@@ -9,6 +9,7 @@ import {
   DataStore,
   DigChallenge,
   DigNetwork,
+  Udi
 } from "@dignetwork/dig-sdk";
 import { formatBytes } from "../utils/formatBytes";
 import {
@@ -25,7 +26,6 @@ import { hexToUtf8 } from "../utils/hexUtils";
 import { getStorageLocation } from "../utils/storage";
 import NodeCache from "node-cache";
 import { Readable } from "stream";
-import { Udi } from "../utils/udi";
 
 const digFolderPath = getStorageLocation();
 const chiaLispCache = new NodeCache({ stdTTL: 180 });
@@ -84,7 +84,7 @@ export const getStoresIndex = async (req: Request, res: Response) => {
       const formattedBytes = formatBytes(Number(state.metadata.bytes));
       const udi = new Udi(chainName, storeId);
       return renderIndexView(
-        udi,
+        udi.toUrn(),
         state,
         formattedBytes
       );

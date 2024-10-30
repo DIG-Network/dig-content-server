@@ -1,7 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import { renderUnknownChainView } from "../views";
-import { DataStore } from "@dignetwork/dig-sdk";
-import { Udi } from "../utils/udi";
+import { DataStore, Udi } from "@dignetwork/dig-sdk";
 
 const validChainNames = ["chia"]; // List of valid chain names
 
@@ -26,7 +25,7 @@ function getUdi(requestUrl: string, referrer: string): [boolean, Udi | null] {
         // so use it to update the udi. The referrer udi might have a reosurce key which is where the request orginated from
         // like a script importing another script, NOT the resource being requested
         if (requestUrl) {
-          udi = udi.fromResourceKey(requestUrl.replace(/^\/+/, ''));
+          udi = udi.withResourceKey(requestUrl.replace(/^\/+/, ''));
         }
         // return true because calling code needs to redirect
         return [true, udi];
@@ -62,7 +61,7 @@ export const parseUdi = async (
     // Validate the chainName
     if (!validChainNames.includes(udi.chainName)) {
       console.warn("Invalid chain name:", udi.chainName);
-      return res.status(400).send(renderUnknownChainView(udi.storeId, udi.chainName));
+      return res.status(400).send(renderUnknownChainView(udi));
     }
 
     // Log extracted values
@@ -79,21 +78,21 @@ export const parseUdi = async (
 
     const dataStore = DataStore.from(udi.storeId);
 
-    let rootHash: string | null = udi.rootHash;
+    let rootHash: Buffer | null = udi.rootHash;
     // If rootHash is missing, fetch the latest one
     if (!rootHash) {
       console.log("RootHash omitted, fetching the latest rootHash...");
       const storeInfo = await dataStore.fetchCoinInfo();
-      rootHash = storeInfo.latestStore.metadata.rootHash.toString("hex");
+      rootHash = storeInfo.latestStore.metadata.rootHash;
     }
 
     // Attach extracted components to the request object
     // @ts-ignore
     req.chainName = udi.chainName;
     // @ts-ignore
-    req.storeId = udi.storeId;
+    req.storeId = udi.storeId.toString('hex');
     // @ts-ignore
-    req.rootHash = rootHash
+    req.rootHash = rootHash ? rootHash.toString('hex') : null;
 
     next();
   } catch (error) {

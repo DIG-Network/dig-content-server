@@ -1,4 +1,4 @@
-import { Udi } from "../utils/udi";
+import { Udi } from "@dignetwork/dig-sdk";
 
 export const renderStoreNotFoundView = (
   udi: Udi,
