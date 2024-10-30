@@ -9,7 +9,7 @@ export const renderUnknownChainView = (
           <div style="text-align: center;">
             <h2 style="margin: 0; font-size: 1.5em; color: #333;">Unknown Chain</h2>
             <p style="margin: 10px 0; color: #777;">The chain <strong style="color: #333;">${udi.chainName}</strong> is not recognized.</p>
-            <p style="margin: 0; font-size: 0.9em; color: #555;">Store ID: <a href="/${udi.toUrn()}" style="color: #007BFF; text-decoration: none;">${udi.toUrn()}</a></p>
+            <p style="margin: 0; font-size: 0.9em; color: #555;">Store: <a href="/${udi.toUrn()}" style="color: #007BFF; text-decoration: none;">${udi.toUrn()}</a></p>
           </div>
           <div style="margin-top: 20px; display: flex; align-items: center; justify-content: center; color: #555;">
             <img src="data:image/svg+xml;base64,${btoa(chainSvg())}" alt="Chain Graphic" style="width: 50px; height: 50px;" />

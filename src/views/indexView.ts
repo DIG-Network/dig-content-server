@@ -20,7 +20,7 @@ export const renderIndexView = (
             ${isSyncing ? "Syncing data, please wait..." : (state.metadata.description || "No Description Available")}
           </p>
           <p style="margin: 0; font-size: 0.9em; color: #555;">
-            Store ID: <a href="/${urn}" style="color: #007BFF; text-decoration: none;">${urn}</a>
+            Store: <a href="/${urn}" style="color: #007BFF; text-decoration: none;">${urn}</a>
             <span style="cursor: pointer;" onclick="copyToClipboard('${urn}', '${toastId}')">
               <svg width="20px" height="20px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path d="M20.9983 10C20.9862 7.82497 20.8897 6.64706 20.1213 5.87868C19.2426 5 17.8284 5 15 5H12C9.17157 5 7.75736 5 6.87868 5.87868C6 6.75736 6 8.17157 6 11V16C6 18.8284 6 20.2426 6.87868 21.1213C7.75736 22 9.17157 22 12 22H15C17.8284 22 19.2426 22 20.1213 21.1213C21 20.2426 21 18.8284 21 16V15" stroke="#1C274C" stroke-width="1.5" stroke-linecap="round"/>
@@ -39,7 +39,7 @@ export const renderIndexView = (
     </div>
 
     <div id="${toastId}" style="visibility: hidden; min-width: 250px; background-color: #333; color: #fff; text-align: center; border-radius: 5px; padding: 16px; position: fixed; z-index: 1; left: 50%; top: 50%; transform: translate(-50%, -50%); font-size: 17px;">
-      Store ID copied to clipboard
+      Store URN copied to clipboard
     </div>
 
     <style>
