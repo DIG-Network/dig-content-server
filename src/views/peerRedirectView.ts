@@ -1,7 +1,7 @@
+import { Udi } from "@dignetwork/dig-sdk";
+
 export const renderStoreNotFoundView = (
-  storeId: string,
-  rootHash: string,
-  chainName: string,
+  udi: Udi,
   peerIp?: string | null
 ) => {
   // If no peers are available, show "Store not found on this network"
@@ -98,7 +98,7 @@ export const renderStoreNotFoundView = (
             <div class="box">
               <h2 class="message">Store Not Found on This Peer</h2>
               <p>Click the button below to redirect to another peer.</p>
-              <a class="button" href="http://${peerIp}:4161/${chainName}.${storeId}.${rootHash}">
+              <a class="button" href="http://${peerIp}:4161/${udi.toUrn()}">
                 Redirect
               </a>
             </div>
