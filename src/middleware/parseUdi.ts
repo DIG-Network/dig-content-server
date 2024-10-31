@@ -16,8 +16,7 @@ export const parseUdi = async (
     }
 
     // strip off the query string as that is not part of the udi
-    const [path] = req.originalUrl.split("?");
-
+    const [path] = req.originalUrl.replace(/^\//, "").split("?");
     const udi = Udi.fromUrn(path);
 
     // Validate the chainName
