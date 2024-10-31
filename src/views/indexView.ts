@@ -9,7 +9,7 @@ export const renderIndexView = (
 ) => {
   const urn = udi.toUrn();
   const isSyncing = !state; // Check if state is null
-  const toastId = `toast-${urn}`; // Unique ID for the toast
+  const toastId = `toast-${udi.storeId}`; // Unique ID for the toast
 
   return `
     <div style="border: 1px solid #ddd; border-radius: 10px; margin-bottom: 20px; padding: 20px; background-color: #f9f9f9;">
@@ -39,7 +39,7 @@ export const renderIndexView = (
               </svg>
               <div>
               <a href="//${udi.chainName}.${
-    udi.storeIdBase32
+    udi.storeIdBase64
   }.${host}">View as Webapp</a>
               </div>
             </span>
