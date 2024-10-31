@@ -45,6 +45,8 @@ export const parseUdi = async (
     req.storeId = udi.storeId;
     // @ts-ignore
     req.rootHash = rootHash;
+    //@ts-ignore
+    req.udi = udi;
 
     next();
   } catch (error) {

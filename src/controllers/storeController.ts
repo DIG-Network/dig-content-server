@@ -84,9 +84,10 @@ export const getStoresIndex = async (req: Request, res: Response) => {
       const formattedBytes = formatBytes(Number(state.metadata.bytes));
       const udi = new Udi(chainName, storeId);
       return renderIndexView(
-        udi.toUrn(),
+        udi,
         state,
-        formattedBytes
+        formattedBytes,
+        req.headers.host as string
       );
     })
   );
