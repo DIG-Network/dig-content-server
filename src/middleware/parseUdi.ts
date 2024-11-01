@@ -17,6 +17,7 @@ export const parseUdi = async (
 
     // strip off the query string as that is not part of the udi
     const [path] = req.originalUrl.replace(/^\//, "").split("?");
+    console.log('path:', path);
     const udi = Udi.fromUrn(path);
 
     // Validate the chainName
@@ -47,6 +48,9 @@ export const parseUdi = async (
     req.rootHash = rootHash;
     //@ts-ignore
     req.udi = udi;
+
+    //@ts-ignore
+    console.log('!!!!', req.chainName, req.storeId, req.rootHash);
 
     next();
   } catch (error) {
