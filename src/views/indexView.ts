@@ -39,7 +39,7 @@ export const renderIndexView = (
               </svg>
               <div>
               <a href="//${udi.chainName}.${
-    udi.storeIdBase64
+    udi.storeIdBase32
   }.${host}">View as Webapp</a>
               </div>
             </span>
