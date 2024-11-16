@@ -2,6 +2,28 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.0.1-alpha.98](https://github.com/DIG-Network/dig-content-server/compare/v0.0.1-alpha.97...v0.0.1-alpha.98) (2024-11-16)
+
+
+### Features
+
+* add subdomain resolver ([d9c7647](https://github.com/DIG-Network/dig-content-server/commit/d9c76470c0444bcc6729eec43c9e5143c1592709))
+* update UDI handling ([9f1ca3b](https://github.com/DIG-Network/dig-content-server/commit/9f1ca3bc41103c55a7591a7d5ca681ecacc462d9))
+
+
+### Bug Fixes
+
+* strip off leading slash in parse udi ([f9846e0](https://github.com/DIG-Network/dig-content-server/commit/f9846e0d0bb11fdde55d6b9eccee8786597f0ef2))
+* udi subdomain ([776eea5](https://github.com/DIG-Network/dig-content-server/commit/776eea5fba9e75f012a8519f5c2706e52b9f840a))
+* udi subdomain ([498f2dc](https://github.com/DIG-Network/dig-content-server/commit/498f2dcc62c5bd4cfdd03e522d6aa022e665601d))
+* udi subdomain ([7761150](https://github.com/DIG-Network/dig-content-server/commit/7761150c0a1450848f35bd1b2220637025fba724))
+* udi subdomain ([1985abd](https://github.com/DIG-Network/dig-content-server/commit/1985abd506dc3b8a949aa164c91ff362a74f6e0b))
+* udi subdomain ([7354f9c](https://github.com/DIG-Network/dig-content-server/commit/7354f9c9b4662987f3e2a8164f4289b25e8cda2c))
+* udi subdomain ([2454d8c](https://github.com/DIG-Network/dig-content-server/commit/2454d8cbf988ca10e86fb16110ae762fc5a11ab6))
+* udi subdomain ([6122bf5](https://github.com/DIG-Network/dig-content-server/commit/6122bf5c25a28f63d3b131ceebe0eabfa2a21451))
+* udi subdomain ([0a4b2a2](https://github.com/DIG-Network/dig-content-server/commit/0a4b2a2c0672d46df8f08a5041d345e6cc776b47))
+* udi subdomain ([01660d5](https://github.com/DIG-Network/dig-content-server/commit/01660d5ecbb80ce3b6aa255a691294d53fb962a5))
+
 ### [0.0.1-alpha.97](https://github.com/DIG-Network/dig-content-server/compare/v0.0.1-alpha.96...v0.0.1-alpha.97) (2024-10-29)
 
 
