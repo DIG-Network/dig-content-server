@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.0.1-alpha.99](https://github.com/DIG-Network/dig-content-server/compare/v0.0.1-alpha.98...v0.0.1-alpha.99) (2024-11-16)
+
+
+### Features
+
+* add urn headers ([b46d7d0](https://github.com/DIG-Network/dig-content-server/commit/b46d7d050584daca85c0bfffb2385f77e67f8e09))
+
 ### [0.0.1-alpha.98](https://github.com/DIG-Network/dig-content-server/compare/v0.0.1-alpha.97...v0.0.1-alpha.98) (2024-11-16)
 
 
