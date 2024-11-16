@@ -10,6 +10,7 @@ import {
   DataStore,
   DigChallenge,
   DigNetwork,
+  Udi
 } from "@dignetwork/dig-sdk";
 import { formatBytes } from "../utils/formatBytes";
 import {
@@ -80,13 +81,14 @@ export const getStoresIndex = async (req: Request, res: Response) => {
   const rows = await Promise.all(
     storeList.map(async (storeId: string) => {
       const dataStore = DataStore.from(storeId);
-      const { latestStore: state} = await dataStore.fetchCoinInfo();
+      const { latestStore: state } = await dataStore.fetchCoinInfo();
       const formattedBytes = formatBytes(Number(state.metadata.bytes));
+      const udi = new Udi(chainName, storeId);
       return renderIndexView(
-        chainName || "chia",
-        storeId,
+        udi,
         state,
-        formattedBytes
+        formattedBytes,
+        req.headers.host as string
       );
     })
   );
@@ -113,14 +115,12 @@ export const getKeysIndex = async (req: Request, res: Response) => {
         storeId,
         rootHash
       );
-
+      const udi = new Udi(chainName, storeId, rootHash);
       return res
         .status(400)
         .send(
           renderStoreNotFoundView(
-            storeId,
-            rootHash,
-            chainName,
+            udi,
             peerRedirect?.IpAddress
           )
         );
@@ -188,6 +188,9 @@ export const getKeysIndex = async (req: Request, res: Response) => {
         };
 
         try {
+          // Prepare the script tag to inject
+          // const baseUrl = `${chainName}:${storeId}:${rootHash}`;
+
           // Read the stream and get the index.html content
           const indexContent = await streamToString(stream);
 
@@ -230,7 +233,8 @@ export const getKeysIndex = async (req: Request, res: Response) => {
     const keys = datalayer.listKeys(rootHash);
     const links = keys.map((key: string) => {
       const utf8Key = hexToUtf8(key);
-      const link = `/${chainName}.${storeId}.${rootHash}/${utf8Key}`;
+      const udi = new Udi(chainName, storeId, rootHash, utf8Key);
+      const link = `/${udi.toUrn()}`;
       return { utf8Key, link };
     });
 
@@ -377,7 +381,7 @@ export const getKey = async (req: Request, res: Response) => {
       res.setHeader("X-Store-Id", storeId);
       res.setHeader("X-Key-Exists", "true");
       res.setHeader("Content-Type", "application/json");
-      
+
       return res.json({
         clsp: clspCode,
         params: params,
