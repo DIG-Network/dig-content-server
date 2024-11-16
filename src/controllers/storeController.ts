@@ -97,7 +97,7 @@ export const getStoresIndex = async (req: Request, res: Response) => {
 
 export const getKeysIndex = async (req: Request, res: Response) => {
   // Extract variables from the request object
-  let { chainName, storeId, rootHash } = req as any;
+  let { chainName, storeId, rootHash, udi } = req as any;
 
   try {
     if (!rootHash) {
@@ -138,6 +138,7 @@ export const getKeysIndex = async (req: Request, res: Response) => {
     res.setHeader("X-Synced", "false");
     res.setHeader("X-Generation-Hash", rootHash);
     res.setHeader("X-Store-Id", storeId);
+    res.setHeader("x-urn", udi);
 
     const maxAgeInSeconds = 60 * 60 * 24 * 30; // Cache for 30 days
     res.setHeader('Cache-Control', `public, max-age=${maxAgeInSeconds}`);
@@ -265,7 +266,7 @@ export const getKeysIndex = async (req: Request, res: Response) => {
 
 // Controller for handling the /:storeId/* route
 export const getKey = async (req: Request, res: Response) => {
-  let { chainName, storeId, rootHash } = req as any;
+  let { chainName, storeId, rootHash, udi } = req as any;
   const catchall = req.params[0]; // This is the key name, i.e., the file path
 
   const key = Buffer.from(decodeURIComponent(catchall), "utf-8").toString(
@@ -361,6 +362,7 @@ export const getKey = async (req: Request, res: Response) => {
         res.setHeader("X-Store-Id", storeId);
         res.setHeader("X-Key-Exists", "true");
         res.setHeader("Content-Type", "application/json");
+        res.setHeader("x-urn", udi);
 
         return res.json({
           clsp: clspCode,
@@ -381,6 +383,7 @@ export const getKey = async (req: Request, res: Response) => {
       res.setHeader("X-Store-Id", storeId);
       res.setHeader("X-Key-Exists", "true");
       res.setHeader("Content-Type", "application/json");
+      res.setHeader("x-urn", udi);
 
       return res.json({
         clsp: clspCode,
@@ -399,6 +402,7 @@ export const getKey = async (req: Request, res: Response) => {
     res.setHeader("X-Generation-Hash", rootHash);
     res.setHeader("X-Store-Id", storeId);
     res.setHeader("X-Key-Exists", "true");
+    res.setHeader("x-urn", udi);
 
     const maxAgeInSeconds = 60 * 60 * 24 * 30; // Cache for 30 days
     res.setHeader('Cache-Control', `public, max-age=${maxAgeInSeconds}`);
@@ -422,7 +426,7 @@ export const getKey = async (req: Request, res: Response) => {
 export const headKey = async (req: Request, res: Response) => {
   try {
     // @ts-ignore
-    let { storeId, rootHash } = req;
+    let { storeId, rootHash, udi } = req;
     const catchall = req.params[0];
 
     if (!rootHash) {
@@ -465,6 +469,7 @@ export const headKey = async (req: Request, res: Response) => {
     res.setHeader("X-Generation-Hash", rootHash);
     res.setHeader("X-Store-Id", storeId);
     res.setHeader("X-Key-Exists", "true");
+    res.setHeader("x-urn", udi);
 
     res.status(200).end(); // Respond with headers only, no content
   } catch (error) {
